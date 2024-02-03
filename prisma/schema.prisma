@@ -32,4 +32,7 @@ model ShopifyStore {
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@map("shopify_stores")
 }

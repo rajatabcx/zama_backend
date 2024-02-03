@@ -98,6 +98,7 @@ export class AuthService {
         data: {
           accessToken,
           id: user.id,
+          email: user.email,
         },
       });
     } catch (err) {
@@ -165,7 +166,10 @@ export class AuthService {
     if (!user) throw new ForbiddenException('Access Denied');
 
     const accessToken = await this.generateAccessToken(user.id, user.email);
-    return { data: { accessToken }, statusCode: 200 };
+    return {
+      data: { accessToken, email: user.email, id: user.id },
+      statusCode: 200,
+    };
   }
 
   async forgotPassword(data: ForgotPasswordDTO) {

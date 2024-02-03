@@ -7,6 +7,8 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './guards';
 import { CommonModule } from './common/common.module';
+import { ShopifyModule } from './shopify/shopify.module';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -16,6 +18,8 @@ import { CommonModule } from './common/common.module';
     PrismaModule,
     AuthModule,
     CommonModule,
+    ShopifyModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [
