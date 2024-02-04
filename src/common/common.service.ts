@@ -5,9 +5,13 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import * as argon2 from 'argon2';
+import { shopifyApi, LATEST_API_VERSION } from '@shopify/shopify-api';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class CommonService {
+  constructor(private config: ConfigService) {}
+
   hashData(password: string) {
     return argon2.hash(password);
   }
@@ -29,5 +33,19 @@ export class CommonService {
     }
     const token = bufferValue.toString('base64');
     return token;
+  }
+  shopifyObject() {
+    const shopify = shopifyApi({
+      apiVersion: LATEST_API_VERSION,
+      isEmbeddedApp: false,
+      apiKey: this.config.get('SHOPIFY_API_KEY'),
+      apiSecretKey: this.config.get('SHOPIFY_API_SECRET_KEY'),
+      scopes: ['read_products'],
+      hostName: this.config.get('FRONTEND_URL'),
+      future: {
+        unstable_tokenExchange: true,
+      },
+    });
+    return shopify;
   }
 }
