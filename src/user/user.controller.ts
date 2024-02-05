@@ -19,4 +19,9 @@ export class UserController {
   ) {
     return this.userService.update(userId, updateUserDto);
   }
+
+  @Get('/integrations')
+  integrations(@UserId() userId: string) {
+    return this.userService.integrations(userId);
+  }
 }

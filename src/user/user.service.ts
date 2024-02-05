@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { UpdateUserDTO } from './dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CommonService } from 'src/common/common.service';
+import { ShopName } from 'src/enum';
 
 @Injectable()
 export class UserService {
@@ -42,6 +43,38 @@ export class UserService {
       return { data: user, message: 'SUCCESS', statusCode: 200 };
     } catch (err) {
       this.common.generateErrorResponse(err, 'User');
+    }
+  }
+
+  async integrations(userId: string) {
+    try {
+      const data = await this.prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+        select: {
+          shopifyStore: {
+            select: {
+              name: true,
+              scope: true,
+            },
+          },
+        },
+      });
+      return {
+        data: {
+          [ShopName.SHOPIFY]: data.shopifyStore
+            ? {
+                shopName: data.shopifyStore.name,
+                scope: data.shopifyStore.scope,
+              }
+            : null,
+        },
+        statusCode: 200,
+        message: 'SUCCESS',
+      };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Integrations');
     }
   }
 }

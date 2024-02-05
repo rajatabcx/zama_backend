@@ -26,12 +26,14 @@ model User {
 }
 
 model ShopifyStore {
-  id        String   @id @unique @default(uuid())
-  name      String?
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @unique @default(uuid())
+  name        String   @unique
+  accessToken String   @unique
+  scope       String
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([name])
   @@map("shopify_stores")
