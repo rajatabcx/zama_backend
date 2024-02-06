@@ -5,9 +5,8 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import * as argon2 from 'argon2';
-import '@shopify/shopify-api/adapters/node';
-import { shopifyApi, LATEST_API_VERSION } from '@shopify/shopify-api';
 import { ConfigService } from '@nestjs/config';
+import * as Shopify from 'shopify-api-node';
 
 @Injectable()
 export class CommonService {
@@ -17,12 +16,8 @@ export class CommonService {
     'read_product_listings',
     'read_orders',
     'write_discounts',
+    'read_products',
   ];
-
-  // {
-  //   access_token: 'shpua_603a3c8d8284a6aab725fb8e240f99be',
-  //   scope: 'read_product_listings,read_orders,write_discounts'
-  // }
 
   hashData(password: string) {
     return argon2.hash(password);
@@ -48,17 +43,11 @@ export class CommonService {
     const token = bufferValue.toString('base64');
     return token;
   }
-  shopifyObject() {
-    const shopify = shopifyApi({
-      apiVersion: LATEST_API_VERSION,
-      isEmbeddedApp: false,
-      apiKey: this.config.get('SHOPIFY_API_KEY'),
-      apiSecretKey: this.config.get('SHOPIFY_API_SECRET_KEY'),
-      scopes: this.shopifyScopes,
-      hostName: this.config.get('FRONTEND_URL').replace('https://', ''),
-      future: {
-        unstable_tokenExchange: true,
-      },
+  shopifyObjectForShop(shopName: string, accessToken: string) {
+    const shopify = new Shopify({
+      shopName,
+      accessToken,
+      apiVersion: '2024-01',
     });
     return shopify;
   }
@@ -75,5 +64,20 @@ export class CommonService {
       }
     }
     return str.join('&');
+  }
+
+  randomIntFromInterval(min: number, max: number) {
+    return Math.floor(Math.random() * (max - min + 1) + min);
+  }
+
+  nounce() {
+    const length = this.randomIntFromInterval(10, 20);
+    const charset =
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let retVal = '';
+    for (let i = 0, n = charset.length; i < length; ++i) {
+      retVal += charset.charAt(Math.floor(Math.random() * n)).toUpperCase();
+    }
+    return retVal;
   }
 }

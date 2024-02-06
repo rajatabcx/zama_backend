@@ -9,6 +9,7 @@ import { JwtAuthGuard } from './guards';
 import { CommonModule } from './common/common.module';
 import { ShopifyModule } from './shopify/shopify.module';
 import { UserModule } from './user/user.module';
+import { WebhookModule } from './webhook/webhook.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { UserModule } from './user/user.module';
     CommonModule,
     ShopifyModule,
     UserModule,
+    WebhookModule,
   ],
   controllers: [AppController],
   providers: [

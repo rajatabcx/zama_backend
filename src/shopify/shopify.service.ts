@@ -19,9 +19,7 @@ export class ShopifyService {
   async shopify(data: InstallShopifyDTO, req: Request, res: Response) {
     try {
       const modifiedShopName = `${data.shopName}.myshopify.com`;
-      const shopify = this.common.shopifyObject();
-      shopify.utils.sanitizeShop(modifiedShopName, true);
-      const shopState = shopify.auth.nonce();
+      const shopState = this.common.nounce();
       const redirectURL = `${this.config.get(
         'FRONTEND_URL',
       )}/shopify/auth/callback`;
@@ -31,7 +29,6 @@ export class ShopifyService {
         scope: this.common.shopifyScopes,
         state: shopState,
         redirect_uri: redirectURL,
-        'grant_options[]': '',
       };
       const shopifyInstallURL = `https://${modifiedShopName}/admin/oauth/authorize?${this.common.serialize(
         queryParams,
@@ -81,6 +78,7 @@ export class ShopifyService {
           userId,
         },
       });
+
       return { data: {}, message: 'SUCCESS', statusCode: 200 };
     } catch (err) {
       this.common.generateErrorResponse(err, 'Shopify');
@@ -97,5 +95,36 @@ export class ShopifyService {
         data,
       ),
     );
+  }
+
+  async products(userId: string) {
+    const params = { limit: 5 };
+    try {
+      const shopifyStore = await this.prisma.shopifyStore.findUnique({
+        where: {
+          userId,
+        },
+        select: {
+          accessToken: true,
+          name: true,
+        },
+      });
+      if (!shopifyStore) {
+        return {
+          data: { connected: false },
+          message: 'SUCCESS',
+          statusCode: 200,
+        };
+      }
+      const shopify = this.common.shopifyObjectForShop(
+        shopifyStore.name,
+        shopifyStore.accessToken,
+      );
+
+      const products = await shopify.draftOrder.list(params);
+      return { data: products, message: 'SUCCESS', statusCode: 200 };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Shopify');
+    }
   }
 }

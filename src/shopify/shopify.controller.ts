@@ -38,4 +38,9 @@ export class ShopifyController {
       userId,
     );
   }
+
+  @Get('/products')
+  products(@UserId() userId: string) {
+    return this.shopifyService.products(userId);
+  }
 }
