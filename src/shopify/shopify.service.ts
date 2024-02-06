@@ -121,7 +121,7 @@ export class ShopifyService {
         shopifyStore.accessToken,
       );
 
-      const products = await shopify.draftOrder.list(params);
+      const products = await shopify.product.get(7227764637807);
       return { data: products, message: 'SUCCESS', statusCode: 200 };
     } catch (err) {
       this.common.generateErrorResponse(err, 'Shopify');
