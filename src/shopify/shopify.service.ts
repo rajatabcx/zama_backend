@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { CommonService } from 'src/common/common.service';
-import { InstallShopifyDTO } from './dto';
+import { DiscountPercentageDTO, InstallShopifyDTO } from './dto';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -97,34 +97,81 @@ export class ShopifyService {
     );
   }
 
-  async products(userId: string) {
-    const params = { limit: 5 };
+  async products(userId: string, page: number, limit: number) {
     try {
-      const shopifyStore = await this.prisma.shopifyStore.findUnique({
-        where: {
-          userId,
-        },
-        select: {
-          accessToken: true,
-          name: true,
-        },
-      });
-      if (!shopifyStore) {
+      const params = { limit: 1 };
+      const shopifyObj = await this.common.shopifyObjectForShop(userId);
+
+      if (!shopifyObj.connected)
         return {
           data: { connected: false },
           message: 'SUCCESS',
           statusCode: 200,
         };
-      }
-      const shopify = this.common.shopifyObjectForShop(
-        shopifyStore.name,
-        shopifyStore.accessToken,
-      );
-
-      const products = await shopify.product.get(7227764637807);
+      const { shopify } = shopifyObj;
+      const products = await shopify.product.list(params);
       return { data: products, message: 'SUCCESS', statusCode: 200 };
     } catch (err) {
-      this.common.generateErrorResponse(err, 'Shopify');
+      this.common.generateErrorResponse(err, 'Shopify Product');
+    }
+  }
+
+  async discount(userId: string) {
+    try {
+      const shopifyObj = await this.common.shopifyObjectForShop(userId);
+
+      if (!shopifyObj.connected)
+        return {
+          data: { connected: false },
+          message: 'SUCCESS',
+          statusCode: 200,
+        };
+      const { shopify, shopifyStore } = shopifyObj;
+      if (!shopifyStore.givingDiscount) {
+        return {
+          data: { givingDiscount: false },
+          message: 'SUCCESS',
+          statusCode: 200,
+        };
+      }
+
+      return { data: {}, message: 'SUCCESS', statusCode: 200 };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Shopify Discount');
+    }
+  }
+
+  async createDiscount(userId: string, data: DiscountPercentageDTO) {
+    try {
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Shopify Discount');
+    }
+  }
+
+  async updateDiscount(userId: string, data: DiscountPercentageDTO) {
+    try {
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Shopify Discount');
+    }
+  }
+
+  async removeDiscount(userId: string) {
+    try {
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Shopify Discount');
+    }
+  }
+
+  async checkConnection(userId: string) {
+    try {
+      const shopifyObj = await this.common.shopifyObjectForShop(userId);
+      return {
+        data: { connected: shopifyObj.connected },
+        statusCode: 200,
+        message: 'SUCCESS',
+      };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Shopify Connection');
     }
   }
 }

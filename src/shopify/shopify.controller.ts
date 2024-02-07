@@ -1,8 +1,20 @@
-import { Controller, Req, Res, Get, Body, Query, Post } from '@nestjs/common';
+import {
+  Controller,
+  Req,
+  Res,
+  Get,
+  Body,
+  Query,
+  Post,
+  DefaultValuePipe,
+  ParseIntPipe,
+  Patch,
+  Delete,
+} from '@nestjs/common';
 import { ShopifyService } from './shopify.service';
 import { Request, Response } from 'express';
 import { Public } from 'src/guards';
-import { InstallShopifyDTO } from './dto';
+import { DiscountPercentageDTO, InstallShopifyDTO } from './dto';
 import { UserId } from 'src/decorators';
 
 @Controller('/shopify')
@@ -40,7 +52,42 @@ export class ShopifyController {
   }
 
   @Get('/products')
-  products(@UserId() userId: string) {
-    return this.shopifyService.products(userId);
+  products(
+    @UserId() userId: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    return this.shopifyService.products(userId, page, limit);
+  }
+
+  @Get('/discount')
+  discount(@UserId() userId: string) {
+    return this.shopifyService.discount(userId);
+  }
+
+  @Post('/discount')
+  createDiscount(
+    @UserId() userId: string,
+    @Body() data: DiscountPercentageDTO,
+  ) {
+    return this.shopifyService.createDiscount(userId, data);
+  }
+
+  @Patch('/discount')
+  updateDiscount(
+    @UserId() userId: string,
+    @Body() data: DiscountPercentageDTO,
+  ) {
+    return this.shopifyService.updateDiscount(userId, data);
+  }
+
+  @Delete('/discount')
+  removeDiscount(@UserId() userId: string) {
+    return this.shopifyService.removeDiscount(userId);
+  }
+
+  @Get('/check-connection')
+  checkConnection(@UserId() userId: string) {
+    return this.shopifyService.checkConnection(userId);
   }
 }

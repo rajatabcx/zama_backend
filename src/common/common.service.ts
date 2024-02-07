@@ -7,16 +7,18 @@ import {
 import * as argon2 from 'argon2';
 import { ConfigService } from '@nestjs/config';
 import * as Shopify from 'shopify-api-node';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class CommonService {
-  constructor(private config: ConfigService) {}
+  constructor(private config: ConfigService, private prisma: PrismaService) {}
 
   shopifyScopes: string[] = [
     'read_product_listings',
     'read_orders',
-    'write_discounts',
     'read_products',
+    'write_discounts',
+    'write_price_rules',
   ];
 
   hashData(password: string) {
@@ -43,13 +45,49 @@ export class CommonService {
     const token = bufferValue.toString('base64');
     return token;
   }
-  shopifyObjectForShop(shopName: string, accessToken: string) {
+  shopifyObject(shopName: string, accessToken: string) {
     const shopify = new Shopify({
       shopName,
       accessToken,
       apiVersion: '2024-01',
     });
     return shopify;
+  }
+
+  async shopifyObjectForShop(userId: string): Promise<
+    | {
+        connected: true;
+        shopify: Shopify;
+        shopifyStore: {
+          accessToken: string;
+          name: string;
+          givingDiscount: boolean;
+          selectedProductIds: string[];
+          discountId: string;
+        };
+      }
+    | { connected: false }
+  > {
+    const shopifyStore = await this.prisma.shopifyStore.findUnique({
+      where: {
+        userId,
+      },
+      select: {
+        accessToken: true,
+        name: true,
+        givingDiscount: true,
+        discountId: true,
+        selectedProductIds: true,
+      },
+    });
+    if (!shopifyStore) {
+      return { connected: false };
+    }
+    const shopify = this.shopifyObject(
+      shopifyStore.name,
+      shopifyStore.accessToken,
+    );
+    return { connected: true, shopify, shopifyStore };
   }
 
   serialize(object: Record<string, any>) {
