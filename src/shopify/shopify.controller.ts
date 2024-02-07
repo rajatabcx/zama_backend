@@ -54,10 +54,10 @@ export class ShopifyController {
   @Get('/products')
   products(
     @UserId() userId: string,
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('page_info') page_info: string,
+    @Query('limit', new DefaultValuePipe(5), new ParseIntPipe()) limit: string,
   ) {
-    return this.shopifyService.products(userId, page, limit);
+    return this.shopifyService.products(userId, limit, page_info);
   }
 
   @Get('/discount')

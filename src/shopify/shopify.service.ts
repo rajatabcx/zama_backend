@@ -97,9 +97,9 @@ export class ShopifyService {
     );
   }
 
-  async products(userId: string, page: number, limit: number) {
+  async products(userId: string, limit: string, page_info: string) {
     try {
-      const params = { limit: 1 };
+      const params = page_info ? { limit, page_info } : { limit };
       const shopifyObj = await this.common.shopifyObjectForShop(userId);
 
       if (!shopifyObj.connected)
@@ -110,7 +110,20 @@ export class ShopifyService {
         };
       const { shopify } = shopifyObj;
       const products = await shopify.product.list(params);
-      return { data: products, message: 'SUCCESS', statusCode: 200 };
+      const currency = await shopify.shop.get({
+        fields: 'money_with_currency_format',
+      });
+
+      return {
+        data: {
+          products,
+          currency,
+          nextPageParams: products.nextPageParameters || null,
+          prevPageParams: products.previousPageParameters || null,
+        },
+        message: 'SUCCESS',
+        statusCode: 200,
+      };
     } catch (err) {
       this.common.generateErrorResponse(err, 'Shopify Product');
     }
@@ -127,6 +140,7 @@ export class ShopifyService {
           statusCode: 200,
         };
       const { shopify, shopifyStore } = shopifyObj;
+
       if (!shopifyStore.givingDiscount) {
         return {
           data: { givingDiscount: false },
