@@ -2,10 +2,11 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { CommonService } from 'src/common/common.service';
-import { DiscountPercentageDTO, InstallShopifyDTO } from './dto';
+import { DiscountPercentageDTO, InstallShopifyDTO, ProductDTO } from './dto';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ShopifyService {
@@ -108,7 +109,7 @@ export class ShopifyService {
           message: 'SUCCESS',
           statusCode: 200,
         };
-      const { shopify } = shopifyObj;
+      const { shopify, shopifyStore } = shopifyObj;
       const products = await shopify.product.list(params);
       const currency = await shopify.shop.get({
         fields: 'money_with_currency_format',
@@ -117,11 +118,52 @@ export class ShopifyService {
       return {
         data: {
           products,
+          selectedProducts: shopifyStore.selectedProductIds.map(
+            (item) => item.productId,
+          ),
           currency,
           nextPageParams: products.nextPageParameters || null,
           prevPageParams: products.previousPageParameters || null,
         },
         message: 'SUCCESS',
+        statusCode: 200,
+      };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Shopify Product');
+    }
+  }
+
+  async addProduct(userId: string, data: ProductDTO) {
+    try {
+      const shopifyObj = await this.common.shopifyObjectForShop(userId);
+
+      if (!shopifyObj.connected)
+        return {
+          data: { connected: false },
+          message: 'SUCCESS',
+          statusCode: 200,
+        };
+      const { shopifyStore } = shopifyObj;
+
+      if (shopifyStore.selectedProductIds.length === 5) {
+        throw new BadRequestException('No more than 5 products are allowed');
+      }
+
+      const json = data as unknown as Prisma.JsonObject;
+
+      await this.prisma.shopifyStore.update({
+        where: {
+          userId,
+        },
+        data: {
+          selectedProductIds: {
+            push: json,
+          },
+        },
+      });
+      return {
+        data: {},
+        message: 'Product added successfully',
         statusCode: 200,
       };
     } catch (err) {
@@ -149,7 +191,17 @@ export class ShopifyService {
         };
       }
 
-      return { data: {}, message: 'SUCCESS', statusCode: 200 };
+      const discount = await shopify.priceRule.get(shopifyStore.priceRuleId);
+
+      return {
+        data: {
+          givingDiscount: true,
+          percentage: -Number(discount.value),
+          title: discount.title,
+        },
+        message: 'SUCCESS',
+        statusCode: 200,
+      };
     } catch (err) {
       this.common.generateErrorResponse(err, 'Shopify Discount');
     }
@@ -157,6 +209,46 @@ export class ShopifyService {
 
   async createDiscount(userId: string, data: DiscountPercentageDTO) {
     try {
+      const shopifyObj = await this.common.shopifyObjectForShop(userId);
+
+      if (!shopifyObj.connected)
+        return {
+          data: { connected: false },
+          message: 'SUCCESS',
+          statusCode: 200,
+        };
+      const { shopify } = shopifyObj;
+
+      const priceRule = await shopify.priceRule.create({
+        title: 'ZAMA_SPECIAL',
+        value_type: 'percentage',
+        value: `-${data.discountPercentage}`,
+        customer_selection: 'all',
+        target_type: 'line_item',
+        target_selection: 'all',
+        allocation_method: 'across',
+        once_per_customer: true,
+        starts_at: new Date().toISOString(),
+      });
+      const discount = await shopify.discountCode.create(priceRule.id, {
+        code: 'ZAMA_SPECIAL',
+      });
+      await this.prisma.shopifyStore.update({
+        where: {
+          userId,
+        },
+        data: {
+          discountId: BigInt(discount.id),
+          priceRuleId: BigInt(priceRule.id),
+          givingDiscount: true,
+        },
+      });
+
+      return {
+        data: {},
+        message: `Discount Code Created Successfully`,
+        statusCode: 201,
+      };
     } catch (err) {
       this.common.generateErrorResponse(err, 'Shopify Discount');
     }
@@ -164,6 +256,19 @@ export class ShopifyService {
 
   async updateDiscount(userId: string, data: DiscountPercentageDTO) {
     try {
+      const shopifyObj = await this.common.shopifyObjectForShop(userId);
+
+      if (!shopifyObj.connected)
+        return {
+          data: { connected: false },
+          message: 'SUCCESS',
+          statusCode: 200,
+        };
+      const { shopify, shopifyStore } = shopifyObj;
+      await shopify.priceRule.update(shopifyStore.priceRuleId, {
+        value: `-${data.discountPercentage}`,
+      });
+      return { data: {}, message: 'SUCCESS', statusCode: 200 };
     } catch (err) {
       this.common.generateErrorResponse(err, 'Shopify Discount');
     }
@@ -171,6 +276,32 @@ export class ShopifyService {
 
   async removeDiscount(userId: string) {
     try {
+      const shopifyObj = await this.common.shopifyObjectForShop(userId);
+
+      if (!shopifyObj.connected)
+        return {
+          data: { connected: false },
+          message: 'SUCCESS',
+          statusCode: 200,
+        };
+      const { shopify, shopifyStore } = shopifyObj;
+
+      await shopify.discountCode.delete(
+        shopifyStore.priceRuleId,
+        shopifyStore.discountId,
+      );
+      await shopify.priceRule.delete(shopifyStore.priceRuleId);
+
+      await this.prisma.shopifyStore.update({
+        where: {
+          userId,
+        },
+        data: {
+          givingDiscount: false,
+          discountId: null,
+          priceRuleId: null,
+        },
+      });
     } catch (err) {
       this.common.generateErrorResponse(err, 'Shopify Discount');
     }

@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "shopify_stores" ALTER COLUMN "priceRuleId" SET DATA TYPE BIGINT,
+ALTER COLUMN "discountId" SET DATA TYPE BIGINT;

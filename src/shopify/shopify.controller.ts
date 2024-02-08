@@ -14,7 +14,7 @@ import {
 import { ShopifyService } from './shopify.service';
 import { Request, Response } from 'express';
 import { Public } from 'src/guards';
-import { DiscountPercentageDTO, InstallShopifyDTO } from './dto';
+import { DiscountPercentageDTO, InstallShopifyDTO, ProductDTO } from './dto';
 import { UserId } from 'src/decorators';
 
 @Controller('/shopify')
@@ -58,6 +58,11 @@ export class ShopifyController {
     @Query('limit', new DefaultValuePipe(5), new ParseIntPipe()) limit: string,
   ) {
     return this.shopifyService.products(userId, limit, page_info);
+  }
+
+  @Patch('/add-product')
+  addProduct(@UserId() userId: string, @Body() data: ProductDTO) {
+    return this.shopifyService.addProduct(userId, data);
   }
 
   @Get('/discount')

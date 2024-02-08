@@ -31,8 +31,10 @@ model ShopifyStore {
   accessToken        String   @unique
   scope              String
   givingDiscount     Boolean  @default(false)
-  selectedProductIds String[]
-  discountId         String?
+  selectedProductIds Json[]
+  discountId         BigInt?
+  priceRuleId        BigInt?
+  webhookRegistered  Boolean  @default(false)
   userId             String   @unique
   user               User     @relation(fields: [userId], references: [id])
   createdAt          DateTime @default(now())

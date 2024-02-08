@@ -8,6 +8,7 @@ import * as argon2 from 'argon2';
 import { ConfigService } from '@nestjs/config';
 import * as Shopify from 'shopify-api-node';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { SelectedProducts } from 'src/shopify/type';
 
 @Injectable()
 export class CommonService {
@@ -29,9 +30,14 @@ export class CommonService {
     console.log(err.message);
     if (err?.code === 'P2025') {
       throw new BadRequestException(`${entity} not found`);
-    } else if (err?.code === 'P2002' || err.response?.status === 409) {
+    } else if (
+      err?.code === 'P2002' ||
+      err.response?.status === 409 ||
+      err.response?.statusCode === 409
+    ) {
       throw new ConflictException(`${entity} already exist`);
-    }
+    } else if (err.response?.status === 400 || err.response?.statusCode === 400)
+      throw new BadRequestException(err.message);
     throw new InternalServerErrorException(
       err.message || 'Something went wrong',
     );
@@ -62,8 +68,10 @@ export class CommonService {
           accessToken: string;
           name: string;
           givingDiscount: boolean;
-          selectedProductIds: string[];
-          discountId: string;
+          selectedProductIds: SelectedProducts;
+          discountId: number;
+          priceRuleId: number;
+          webhookRegistered: boolean;
         };
       }
     | { connected: false }
@@ -77,7 +85,9 @@ export class CommonService {
         name: true,
         givingDiscount: true,
         discountId: true,
+        priceRuleId: true,
         selectedProductIds: true,
+        webhookRegistered: true,
       },
     });
     if (!shopifyStore) {
@@ -87,7 +97,17 @@ export class CommonService {
       shopifyStore.name,
       shopifyStore.accessToken,
     );
-    return { connected: true, shopify, shopifyStore };
+
+    return {
+      connected: true,
+      shopify,
+      shopifyStore: {
+        ...shopifyStore,
+        selectedProductIds: shopifyStore.selectedProductIds as SelectedProducts,
+        discountId: Number(shopifyStore.discountId),
+        priceRuleId: Number(shopifyStore.priceRuleId),
+      },
+    };
   }
 
   serialize(object: Record<string, any>) {
