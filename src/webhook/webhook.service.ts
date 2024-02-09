@@ -82,12 +82,20 @@ export class WebhookService {
         format: 'json',
       });
 
+      //   cart create, check if customer is coming or not
+      const cartCreateWebhook = shopify.webhook.create({
+        topic: 'carts/create',
+        address: `${baseUrl}/webhook/shopify/cart-created`,
+        format: 'json',
+      });
+
       await Promise.all([
         uninstallWebhook,
         createCheckoutWebhook,
         orderCreateWebhook,
         updateCheckoutWebhook,
         orderUpdateWebhook,
+        cartCreateWebhook,
       ]);
       await this.prisma.shopifyStore.update({
         where: {
@@ -104,21 +112,31 @@ export class WebhookService {
 
   async shopifyAppUninstalled(data: any) {
     console.log('App Uninstalled');
+    return {};
+  }
+
+  async shopifyCartCreated(data: any) {
+    console.log('Checkout Created');
+    return {};
   }
 
   async shopifyCheckoutCreated(data: any) {
     console.log('Checkout Created');
+    return {};
   }
 
   async shopifyCheckoutUpdated(data: any) {
     console.log('Checkout Updated');
+    return {};
   }
 
   async shopifyOrderCreated(data: any) {
     console.log('Order Created');
+    return {};
   }
 
   async shopifyOrderUpdated(data: any) {
     console.log('Order Updated');
+    return {};
   }
 }

@@ -30,6 +30,12 @@ export class WebhookController {
   }
 
   @Public()
+  @Post('/shopify/cart-created')
+  shopifyCartCreated(@Body() data: any) {
+    return this.webhookService.shopifyCartCreated(data);
+  }
+
+  @Public()
   @Post('/shopify/checkout-updated')
   shopifyCheckoutUpdated(@Body() data: any) {
     return this.webhookService.shopifyCheckoutUpdated(data);
