@@ -47,6 +47,14 @@ export class WebhookService {
 
       const baseUrl = this.config.get('BACKEND_URL');
 
+      // Delete code use when need to register again
+      // const list = await shopify.webhook.list();
+      // console.log(list);
+      // for (const webhook of list) {
+      //   await shopify.webhook.delete(webhook.id);
+      // }
+      // return;
+
       //   for deleting store from backend
       const uninstallWebhook = shopify.webhook.create({
         topic: 'app/uninstalled',
@@ -95,7 +103,7 @@ export class WebhookService {
         orderCreateWebhook,
         updateCheckoutWebhook,
         orderUpdateWebhook,
-        cartCreateWebhook,
+        // cartCreateWebhook,
       ]);
       await this.prisma.shopifyStore.update({
         where: {
@@ -106,27 +114,88 @@ export class WebhookService {
         },
       });
     } catch (err) {
-      this.common.generateErrorResponse(err, 'Shopify sWebhooks');
+      this.common.generateErrorResponse(err, 'Shopify Webhooks');
     }
   }
 
   async shopifyAppUninstalled(data: any) {
     console.log('App Uninstalled');
+    console.log(data);
     return {};
   }
 
   async shopifyCartCreated(data: any) {
-    console.log('Checkout Created');
+    console.log('Cart Created');
+    console.log(data);
     return {};
   }
 
   async shopifyCheckoutCreated(data: any) {
     console.log('Checkout Created');
+    const checkout = await this.prisma.checkout.findUnique({
+      where: {
+        shopifyCheckoutId: data.id,
+      },
+    });
+    if (checkout) {
+      this.shopifyCheckoutUpdated(data);
+      return {};
+    }
+    try {
+      const url = new URL(data.abandoned_checkout_url);
+      const shopName = url.host;
+
+      await this.prisma.checkout.create({
+        data: {
+          shopifyCheckoutId: data.id,
+          abandoned_checkout_url: data.abandoned_checkout_url,
+          total_discounts: data.total_discounts,
+          total_price: data.total_price,
+          subtotal_price: data.subtotal_price,
+          total_tax: data.total_tax,
+          presentment_currency: data.presentment_currency,
+          shopifyCartToken: data.cart_token,
+          customerEmail: data.email,
+          customerFirstName: data.shipping_address.first_name,
+          customerLastName: data.shipping_address.last_name,
+          ShopifyStore: {
+            connect: {
+              name: shopName,
+            },
+          },
+        },
+      });
+      return {};
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Shopify Checkout');
+    }
     return {};
   }
 
   async shopifyCheckoutUpdated(data: any) {
     console.log('Checkout Updated');
+    try {
+      await this.prisma.checkout.update({
+        where: {
+          shopifyCheckoutId: data.id,
+        },
+        data: {
+          shopifyCheckoutId: data.id,
+          abandoned_checkout_url: data.abandoned_checkout_url,
+          total_discounts: data.total_discounts,
+          total_price: data.total_price,
+          subtotal_price: data.subtotal_price,
+          total_tax: data.total_tax,
+          presentment_currency: data.presentment_currency,
+          shopifyCartToken: data.cart_token,
+          customerEmail: data.email,
+          customerFirstName: data.shipping_address.first_name,
+          customerLastName: data.shipping_address.last_name,
+        },
+      });
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Shopify Checkout');
+    }
     return {};
   }
 

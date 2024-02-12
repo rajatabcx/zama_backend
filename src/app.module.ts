@@ -10,6 +10,7 @@ import { CommonModule } from './common/common.module';
 import { ShopifyModule } from './shopify/shopify.module';
 import { UserModule } from './user/user.module';
 import { WebhookModule } from './webhook/webhook.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { WebhookModule } from './webhook/webhook.module';
     ShopifyModule,
     UserModule,
     WebhookModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [

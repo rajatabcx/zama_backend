@@ -11,18 +11,30 @@ datasource db {
 }
 
 model User {
-  id            String        @id @unique @default(uuid())
+  id            String         @id @unique @default(uuid())
   name          String?
-  email         String        @unique
+  email         String         @unique
   password      String?
   passwordToken String?
   shopifyStore  ShopifyStore?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  emailSetting  EmailSettings?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([name])
   @@index([email])
   @@map("users")
+}
+
+model EmailSettings {
+  id           String   @id @unique @default(uuid())
+  stripoApiKey String
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("email_settings")
 }
 
 model ShopifyStore {
@@ -47,43 +59,23 @@ model ShopifyStore {
 }
 
 model Checkout {
-  id                      String       @id @unique @default(uuid())
-  shopifyCheckoutId       BigInt       @unique
-  shopifyCartToken        String
-  email                   String       @unique
-  buyer_accepts_marketing String
-  abandoned_checkout_url  String
-  presentment_currency    String
-  total_line_items_price  String
-  total_price             String
-  total_tax               String
-  total_discounts         String
-  subtotal_price          String
-  lineItems               LineItem[]
-  customerEmail           String?      @unique
-  customerFirstName       String?
-  customerLastName        String?
-  orderFulFilled          Boolean      @default(false)
-  createdAt               DateTime     @default(now())
-  updatedAt               DateTime     @updatedAt
-  shopifyStoreId          String
-  ShopifyStore            ShopifyStore @relation(fields: [shopifyStoreId], references: [id])
+  id                     String       @id @unique @default(uuid())
+  shopifyCheckoutId      BigInt       @unique
+  shopifyCartToken       String
+  abandoned_checkout_url String
+  presentment_currency   String
+  total_price            String
+  total_tax              String
+  total_discounts        String
+  subtotal_price         String
+  customerEmail          String?
+  customerFirstName      String?
+  customerLastName       String?
+  orderFulFilled         Boolean      @default(false)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  shopifyStoreId         String
+  ShopifyStore           ShopifyStore @relation(fields: [shopifyStoreId], references: [id])
 
   @@map("checkouts")
-}
-
-model LineItem {
-  id            String   @id @unique @default(uuid())
-  productId     BigInt
-  variantId     BigInt
-  title         String
-  variantTitle  String
-  quantity      Int
-  price         String
-  line_price    String
-  variant_price String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  Checkout      Checkout @relation(fields: [checkoutId], references: [id])
-  checkoutId    String
 }
