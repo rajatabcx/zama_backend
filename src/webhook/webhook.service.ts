@@ -120,7 +120,7 @@ export class WebhookService {
   }
 
   async shopifyAppUninstalled(data: any) {
-    console.log('App Uninstalled');
+    // console.log('App Uninstalled');
 
     const shopifyStore = await this.prisma.shopifyStore.findUnique({
       where: {
@@ -154,21 +154,14 @@ export class WebhookService {
   }
 
   async shopifyCartCreated(data: any) {
-    console.log('Cart Created');
-    console.log(data);
+    // console.log('Cart Created');
+    // console.log(data);
     return {};
   }
 
   async shopifyCheckoutCreated(data: any) {
-    const checkout = await this.prisma.checkout.findUnique({
-      where: {
-        shopifyCheckoutId: data.id,
-      },
-    });
-    if (checkout) {
-      this.shopifyCheckoutUpdated(data);
-      return {};
-    }
+    console.log('create');
+    console.log(data);
     try {
       const url = new URL(data.abandoned_checkout_url);
       const shopName = url.host;
@@ -178,6 +171,7 @@ export class WebhookService {
           shopifyCheckoutId: data.id,
           shopifyCartToken: data.cart_token,
           shopifyCheckoutToken: data.token,
+          shopifyAbandonedCheckoutURL: data.abandoned_checkout_url,
           ShopifyStore: {
             connect: {
               name: shopName,
@@ -193,7 +187,21 @@ export class WebhookService {
   }
 
   async shopifyCheckoutUpdated(data: any) {
-    console.log('Checkout Updated');
+    console.log('update');
+    console.log(data);
+    const checkout = await this.prisma.checkout.findUnique({
+      where: {
+        shopifyCheckoutId: data.id,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!checkout) {
+      return {};
+    }
+
     try {
       await this.prisma.checkout.update({
         where: {
@@ -203,6 +211,7 @@ export class WebhookService {
           shopifyCheckoutId: data.id,
           shopifyCartToken: data.cart_token,
           shopifyCheckoutToken: data.token,
+          shopifyAbandonedCheckoutURL: data.abandoned_checkout_url,
         },
       });
     } catch (err) {
@@ -212,14 +221,14 @@ export class WebhookService {
   }
 
   async shopifyOrderCreated(data: any) {
-    console.log('Order Created');
-    console.log(data);
+    // console.log('Order Created');
+    // console.log(data);
     return {};
   }
 
   async shopifyOrderUpdated(data: any) {
-    console.log('Order Updated');
-    console.log(data);
+    // console.log('Order Updated');
+    // console.log(data);
     return {};
   }
 }

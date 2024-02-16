@@ -7,6 +7,7 @@ import {
   DiscountPercentageDTO,
   InstallShopifyDTO,
   ProductDTO,
+  RemoveLineItemDTO,
   UpdateLineItemDTO,
 } from './dto';
 import { HttpService } from '@nestjs/axios';
@@ -78,15 +79,10 @@ export class ShopifyService {
       };
 
       const { data } = await this.shopifyAccessToken(shop, accessTokenData);
-      const shopify = this.common.shopifyObject(shop, data.access_token);
-      const storefrontAccessToken = await shopify.storefrontAccessToken.create({
-        title: 'ZAMA',
-      });
       await this.prisma.shopifyStore.create({
         data: {
           name: shop,
           accessToken: data.access_token,
-          storeFrontAccessToken: storefrontAccessToken.access_token,
           scope: data.scope,
           userId,
         },
@@ -319,6 +315,48 @@ export class ShopifyService {
     }
   }
 
+  async addStoreFrontApiKey(userId: string, data) {
+    try {
+      await this.prisma.shopifyStore.update({
+        where: {
+          userId,
+        },
+        data: {
+          storeFrontAccessToken: data.storeFrontAccessToken,
+        },
+      });
+
+      return {
+        data: {},
+        message: `Storefront access token added Successfully`,
+        statusCode: 201,
+      };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Store front access token');
+    }
+  }
+
+  async updateStoreFrontApiKey(userId: string, data) {
+    try {
+      await this.prisma.shopifyStore.update({
+        where: {
+          userId,
+        },
+        data: {
+          storeFrontAccessToken: data.storeFrontAccessToken,
+        },
+      });
+
+      return {
+        data: {},
+        message: `Storefront access token updated Successfully`,
+        statusCode: 201,
+      };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Storefront access token');
+    }
+  }
+
   async checkConnection(userId: string) {
     try {
       const shopifyObj = await this.common.shopifyObjectForShop(userId);
@@ -500,7 +538,105 @@ export class ShopifyService {
     // customerFirstName: data.shipping_address.first_name,
     // customerLastName: data.shipping_address.last_name,
   }
+
   async addLineItemToCheckout(data: AddLineItemDTO) {
+    try {
+      const checkout = await this.prisma.checkout.findUnique({
+        where: {
+          id: data.checkoutId,
+        },
+        select: {
+          ShopifyStore: {
+            select: {
+              storeFrontAccessToken: true,
+              accessToken: true,
+              name: true,
+            },
+          },
+          shopifyCheckoutToken: true,
+          shopifyCheckoutId: true,
+          shopifyAbandonedCheckoutURL: true,
+          shopifyCartToken: true,
+        },
+      });
+
+      const shopify = this.common.shopifyStoreFrontObject(
+        checkout.ShopifyStore.name,
+        checkout.ShopifyStore.storeFrontAccessToken,
+      );
+
+      const urlSearchParams = new URL(checkout.shopifyAbandonedCheckoutURL);
+
+      const key = urlSearchParams.searchParams.get('key');
+
+      if (!key) {
+        throw new BadRequestException('Key not found');
+      }
+
+      // 'https://zama-merchant.myshopify.com/56549736559/checkouts/ac/Z2NwLWFzaWEtc291dGhlYXN0MTowMUhQUzhHOU4xNDJUVlFZUjQyQjNXNDhXRA/recover?key=a212f8839ec3a2eac1791646284d9c0c'
+
+      const variantId = btoa(`gid://shopify/ProductVariant/${data.variantId}`);
+      const checkoutId = btoa(
+        `gid://shopify/Checkout/${checkout.shopifyCheckoutToken}?key=${key}`,
+      );
+
+      const {
+        data: resData,
+        errors,
+        extensions,
+      } = await shopify.request(
+        `mutation {
+          checkoutLineItemsAdd(
+            checkoutId: "${checkoutId}",
+            lineItems: [
+              {
+                variantId:"${variantId}",
+                quantity: 1
+              }
+            ]
+          ) {
+            checkout {
+              id
+            }
+            checkoutUserErrors {
+              code
+              field
+              message
+            }
+          }
+        }
+      `,
+      );
+      console.log(resData);
+      console.log(extensions);
+      if (errors || resData.checkoutLineItemsAdd?.checkoutUserErrors.length) {
+        console.log(errors?.graphQLErrors);
+        console.log(resData?.checkoutLineItemsAdd?.checkoutUserErrors);
+        throw new BadRequestException(
+          errors?.message ||
+            resData.checkoutLineItemsAdd.checkoutUserErrors[0].message,
+        );
+      }
+      return {
+        data: resData,
+        message: 'Item added to checkout successfully',
+        statusCode: 200,
+      };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Checkout');
+    }
+  }
+
+  async updateLineItemInCheckout(data: UpdateLineItemDTO) {
+    console.log(data);
+    return {};
+    // update quantity
+    // {"line_item": {"id": line_item_id, "quantity": new_quantity}}
+    // update the variant
+    // {"id": line_item_id, "variant_id": new_variant_id}
+  }
+
+  async removeLineItemFromCheckout(data: RemoveLineItemDTO) {
     try {
       const checkout = await this.prisma.checkout.findUnique({
         where: {
@@ -518,7 +654,6 @@ export class ShopifyService {
           shopifyCheckoutId: true,
         },
       });
-      console.log(checkout.ShopifyStore.storeFrontAccessToken);
 
       const shopify = this.common.shopifyStoreFrontObject(
         checkout.ShopifyStore.name,
@@ -527,25 +662,28 @@ export class ShopifyService {
 
       const { data: resData, errors } = await shopify.request(
         `mutation {
-          checkoutLineItemsAdd(
-            checkoutId: "gid://shopify/Checkout/${checkout.shopifyCheckoutToken}",
-            lineItems: [
-              {
-                variantId: "gid://shopify/ProductVariant/${data.variantId}",
-                quantity: 1
-              }
-            ]
+          checkoutLineItemsRemove(
+            checkoutId: gid:\/\/shopify\/Checkout\/${checkout.shopifyCheckoutToken},
+            lineItemIds: []
           ) {
             checkout {
               id
+            }
+            checkoutUserErrors {
+              code
+              field
+              message
             }
           }
         }
       `,
       );
-      if (errors) {
+      if (errors || resData.checkoutLineItemsAdd.checkoutUserErrors.length) {
         console.log(errors.graphQLErrors);
-        throw new BadRequestException(errors.message);
+        throw new BadRequestException(
+          errors?.message ||
+            resData.checkoutLineItemsAdd.checkoutUserErrors[0].message,
+        );
       }
       return {
         data: resData,
@@ -553,15 +691,7 @@ export class ShopifyService {
         statusCode: 200,
       };
     } catch (err) {
-      this.common.generateErrorResponse(err, 'Product');
+      this.common.generateErrorResponse(err, 'Checkout');
     }
-  }
-  async updateLineItemInCheckout(data: UpdateLineItemDTO) {
-    console.log(data);
-    return {};
-    // update quantity
-    // {"line_item": {"id": line_item_id, "quantity": new_quantity}}
-    // update the variant
-    // {"id": line_item_id, "variant_id": new_variant_id}
   }
 }

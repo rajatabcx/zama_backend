@@ -41,9 +41,9 @@ model ShopifyStore {
   id                    String     @id @unique @default(uuid())
   name                  String     @unique
   accessToken           String     @unique
-  storeFrontAccessToken String     @unique
+  storeFrontAccessToken String?    @unique
   scope                 String
-  givingDiscount        Boolean    @default(false)
+  givingDiscount        Boolean    @default(false) // remove this later
   selectedProductIds    Json[]
   discountId            BigInt?
   priceRuleId           BigInt?
@@ -60,15 +60,16 @@ model ShopifyStore {
 }
 
 model Checkout {
-  id                   String       @id @unique @default(uuid())
-  shopifyCheckoutId    BigInt       @unique
-  shopifyCheckoutToken String
-  shopifyCartToken     String
-  orderFulFilled       Boolean      @default(false)
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
-  shopifyStoreId       String
-  ShopifyStore         ShopifyStore @relation(fields: [shopifyStoreId], references: [id])
+  id                          String       @id @unique @default(uuid())
+  shopifyCheckoutId           BigInt       @unique
+  shopifyCheckoutToken        String       @unique
+  shopifyAbandonedCheckoutURL String       @unique
+  shopifyCartToken            String       @unique
+  orderFulFilled              Boolean      @default(false)
+  createdAt                   DateTime     @default(now())
+  updatedAt                   DateTime     @updatedAt
+  shopifyStoreId              String
+  ShopifyStore                ShopifyStore @relation(fields: [shopifyStoreId], references: [id])
 
   @@map("checkouts")
 }

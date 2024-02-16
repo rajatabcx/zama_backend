@@ -67,7 +67,7 @@ export class CommonService {
     const shopify = createStorefrontApiClient({
       storeDomain,
       privateAccessToken,
-      apiVersion: '2023-10',
+      apiVersion: '2024-01',
     });
     return shopify;
   }
