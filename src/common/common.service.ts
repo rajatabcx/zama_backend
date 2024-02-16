@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import * as Shopify from 'shopify-api-node';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SelectedProducts } from 'src/shopify/type';
+import { createStorefrontApiClient } from '@shopify/storefront-api-client';
 
 @Injectable()
 export class CommonService {
@@ -20,6 +21,8 @@ export class CommonService {
     'read_products',
     'write_discounts',
     'write_price_rules',
+    'write_checkouts',
+    'unauthenticated_write_checkouts',
   ];
 
   hashData(password: string) {
@@ -56,6 +59,15 @@ export class CommonService {
       shopName,
       accessToken,
       apiVersion: '2024-01',
+    });
+    return shopify;
+  }
+
+  shopifyStoreFrontObject(storeDomain: string, privateAccessToken: string) {
+    const shopify = createStorefrontApiClient({
+      storeDomain,
+      privateAccessToken,
+      apiVersion: '2023-10',
     });
     return shopify;
   }
@@ -137,5 +149,13 @@ export class CommonService {
       retVal += charset.charAt(Math.floor(Math.random() * n)).toUpperCase();
     }
     return retVal;
+  }
+
+  currencyFormatter(currency: string): Intl.NumberFormat {
+    const formatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+    });
+    return formatter;
   }
 }

@@ -38,44 +38,37 @@ model EmailSettings {
 }
 
 model ShopifyStore {
-  id                 String     @id @unique @default(uuid())
-  name               String     @unique
-  accessToken        String     @unique
-  scope              String
-  givingDiscount     Boolean    @default(false)
-  selectedProductIds Json[]
-  discountId         BigInt?
-  priceRuleId        BigInt?
-  webhookRegistered  Boolean    @default(false)
-  hourDelay          Int        @default(10)
-  checkouts          Checkout[]
-  userId             String     @unique
-  user               User       @relation(fields: [userId], references: [id])
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
+  id                    String     @id @unique @default(uuid())
+  name                  String     @unique
+  accessToken           String     @unique
+  storeFrontAccessToken String     @unique
+  scope                 String
+  givingDiscount        Boolean    @default(false)
+  selectedProductIds    Json[]
+  discountId            BigInt?
+  priceRuleId           BigInt?
+  webhookRegistered     Boolean    @default(false)
+  hourDelay             Int        @default(10)
+  checkouts             Checkout[]
+  userId                String     @unique
+  user                  User       @relation(fields: [userId], references: [id])
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
 
   @@index([name])
   @@map("shopify_stores")
 }
 
 model Checkout {
-  id                     String       @id @unique @default(uuid())
-  shopifyCheckoutId      BigInt       @unique
-  shopifyCartToken       String
-  abandoned_checkout_url String
-  presentment_currency   String
-  total_price            String
-  total_tax              String
-  total_discounts        String
-  subtotal_price         String
-  customerEmail          String?
-  customerFirstName      String?
-  customerLastName       String?
-  orderFulFilled         Boolean      @default(false)
-  createdAt              DateTime     @default(now())
-  updatedAt              DateTime     @updatedAt
-  shopifyStoreId         String
-  ShopifyStore           ShopifyStore @relation(fields: [shopifyStoreId], references: [id])
+  id                   String       @id @unique @default(uuid())
+  shopifyCheckoutId    BigInt       @unique
+  shopifyCheckoutToken String
+  shopifyCartToken     String
+  orderFulFilled       Boolean      @default(false)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  shopifyStoreId       String
+  ShopifyStore         ShopifyStore @relation(fields: [shopifyStoreId], references: [id])
 
   @@map("checkouts")
 }

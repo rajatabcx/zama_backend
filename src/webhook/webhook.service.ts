@@ -47,13 +47,14 @@ export class WebhookService {
 
       const baseUrl = this.config.get('BACKEND_URL');
 
-      // Delete code use when need to register again
-      // const list = await shopify.webhook.list();
-      // console.log(list);
-      // for (const webhook of list) {
-      //   await shopify.webhook.delete(webhook.id);
-      // }
-      // return;
+      // Delete call the registered webhooks
+      const list = await shopify.webhook.list();
+      const promises = [];
+      for (const webhook of list) {
+        promises.push(shopify.webhook.delete(webhook.id));
+      }
+
+      await Promise.all(promises);
 
       //   for deleting store from backend
       const uninstallWebhook = shopify.webhook.create({
@@ -103,7 +104,7 @@ export class WebhookService {
         orderCreateWebhook,
         updateCheckoutWebhook,
         orderUpdateWebhook,
-        // cartCreateWebhook,
+        cartCreateWebhook,
       ]);
       await this.prisma.shopifyStore.update({
         where: {
@@ -120,7 +121,35 @@ export class WebhookService {
 
   async shopifyAppUninstalled(data: any) {
     console.log('App Uninstalled');
-    console.log(data);
+
+    const shopifyStore = await this.prisma.shopifyStore.findUnique({
+      where: {
+        name: `${data.name}.myshopify.com`,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!shopifyStore) {
+      console.log('Store not found');
+      return {};
+    }
+
+    const checkoutDeletePromise = this.prisma.checkout.deleteMany({
+      where: {
+        shopifyStoreId: shopifyStore.id,
+      },
+    });
+
+    const storeDeletePromise = this.prisma.shopifyStore.deleteMany({
+      where: {
+        id: shopifyStore.id,
+      },
+    });
+
+    await this.prisma.$transaction([checkoutDeletePromise, storeDeletePromise]);
+
     return {};
   }
 
@@ -131,7 +160,6 @@ export class WebhookService {
   }
 
   async shopifyCheckoutCreated(data: any) {
-    console.log('Checkout Created');
     const checkout = await this.prisma.checkout.findUnique({
       where: {
         shopifyCheckoutId: data.id,
@@ -148,16 +176,8 @@ export class WebhookService {
       await this.prisma.checkout.create({
         data: {
           shopifyCheckoutId: data.id,
-          abandoned_checkout_url: data.abandoned_checkout_url,
-          total_discounts: data.total_discounts,
-          total_price: data.total_price,
-          subtotal_price: data.subtotal_price,
-          total_tax: data.total_tax,
-          presentment_currency: data.presentment_currency,
           shopifyCartToken: data.cart_token,
-          customerEmail: data.email,
-          customerFirstName: data.shipping_address.first_name,
-          customerLastName: data.shipping_address.last_name,
+          shopifyCheckoutToken: data.token,
           ShopifyStore: {
             connect: {
               name: shopName,
@@ -181,16 +201,8 @@ export class WebhookService {
         },
         data: {
           shopifyCheckoutId: data.id,
-          abandoned_checkout_url: data.abandoned_checkout_url,
-          total_discounts: data.total_discounts,
-          total_price: data.total_price,
-          subtotal_price: data.subtotal_price,
-          total_tax: data.total_tax,
-          presentment_currency: data.presentment_currency,
           shopifyCartToken: data.cart_token,
-          customerEmail: data.email,
-          customerFirstName: data.shipping_address.first_name,
-          customerLastName: data.shipping_address.last_name,
+          shopifyCheckoutToken: data.token,
         },
       });
     } catch (err) {
@@ -201,11 +213,13 @@ export class WebhookService {
 
   async shopifyOrderCreated(data: any) {
     console.log('Order Created');
+    console.log(data);
     return {};
   }
 
   async shopifyOrderUpdated(data: any) {
     console.log('Order Updated');
+    console.log(data);
     return {};
   }
 }

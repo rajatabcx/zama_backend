@@ -10,12 +10,21 @@ import {
   ParseIntPipe,
   Patch,
   Delete,
+  Param,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ShopifyService } from './shopify.service';
 import { Request, Response } from 'express';
 import { Public } from 'src/guards';
-import { DiscountPercentageDTO, InstallShopifyDTO, ProductDTO } from './dto';
+import {
+  AddLineItemDTO,
+  DiscountPercentageDTO,
+  InstallShopifyDTO,
+  ProductDTO,
+  UpdateLineItemDTO,
+} from './dto';
 import { UserId } from 'src/decorators';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('/shopify')
 export class ShopifyController {
@@ -94,5 +103,33 @@ export class ShopifyController {
   @Get('/check-connection')
   checkConnection(@UserId() userId: string) {
     return this.shopifyService.checkConnection(userId);
+  }
+
+  @Public()
+  @Get('/bestseller-email/:checkoutId')
+  bestSellerEmailData(@Param('checkoutId') checkoutId: string) {
+    return this.shopifyService.bestSellerEmailData(checkoutId);
+  }
+
+  @Public()
+  @Get('/checkout-email/:checkoutId')
+  checkoutEmailData(@Param('checkoutId') checkoutId: string) {
+    return this.shopifyService.checkoutEmailData(checkoutId);
+  }
+
+  @Public()
+  @Post('/checkout-email/add-line-item')
+  @UseInterceptors(FileInterceptor('file'))
+  addLineItemToCheckout(
+    @Body()
+    data: AddLineItemDTO,
+  ) {
+    return this.shopifyService.addLineItemToCheckout(data);
+  }
+
+  @Public()
+  @Post('/checkout-email/update-line-item')
+  updateLineItemInCheckout(@Body() data: UpdateLineItemDTO) {
+    return this.shopifyService.updateLineItemInCheckout(data);
   }
 }
