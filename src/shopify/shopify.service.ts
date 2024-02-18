@@ -15,6 +15,7 @@ import { firstValueFrom } from 'rxjs';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { SelectedProducts } from './type';
+import { CheckoutService } from 'src/checkout/checkout.service';
 
 @Injectable()
 export class ShopifyService {
@@ -23,6 +24,7 @@ export class ShopifyService {
     private common: CommonService,
     private http: HttpService,
     private prisma: PrismaService,
+    private checkout: CheckoutService,
   ) {}
 
   async shopify(data: InstallShopifyDTO, req: Request, res: Response) {
@@ -459,12 +461,14 @@ export class ShopifyService {
           select: {
             accessToken: true,
             name: true,
+            storeFrontAccessToken: true,
           },
         },
         orderFulFilled: true,
-        shopifyCartToken: true,
-        shopifyCheckoutToken: true,
-        shopifyCheckoutId: true,
+        shopifyStoreFrontCheckoutToken: true,
+        shopifyAdminCheckoutToken: true,
+        shopifyStorefrontCheckoutId: true,
+        shopifyAbandonedCheckoutURL: true,
       },
     });
 
@@ -473,70 +477,132 @@ export class ShopifyService {
     }
 
     try {
-      const shopify = this.common.shopifyObject(
+      const shopifyStoreFront = this.common.shopifyStoreFrontObject(
         checkout.ShopifyStore.name,
-        checkout.ShopifyStore.accessToken,
+        checkout.ShopifyStore.storeFrontAccessToken,
       );
 
-      const checkoutDetails = await shopify.checkout.get(
-        checkout.shopifyCheckoutToken,
+      // just write the perfect query and get the updated result and it will work
+      const { data: resData, errors } = await shopifyStoreFront.request(
+        `
+      query{
+        node(id: "${btoa(checkout.shopifyStorefrontCheckoutId)}") {
+        id
+        ... on Checkout {
+            id
+            currencyCode
+            subtotalPrice{
+              amount
+              currencyCode
+            }
+            totalPrice
+            {
+              amount
+              currencyCode
+            }
+            totalTax{
+              amount
+              currencyCode
+            }
+
+            taxesIncluded
+            lineItems(first: 250) {
+              edges {
+                node {
+                  id
+                  body_html
+                  title
+                  quantity
+                  currentTotalPrice{
+                    amount
+                    currencyCode
+                  }
+                  price{
+                    amount
+                    currencyCode
+                  }
+                  variant {
+                    id
+                    title
+                  }
+              }
+              }
+              }
+            order{
+              id
+            }
+
+          }
+        }
+      }
+      
+      `,
       );
+
+      let checkoutDetails = {
+        ...resData?.node,
+        lineItems: resData?.node?.lineItems?.edges.map(
+          (lineItem) => lineItem.node,
+        ),
+      };
 
       const formatter = this.common.currencyFormatter(
-        checkoutDetails.presentment_currency,
+        checkoutDetails.currencyCode,
       );
 
-      const productDetailedPromises = checkoutDetails.line_items.map(
-        (product) => shopify.product.get(+product.product_id),
-      );
-
-      const allProductDetails = await Promise.all(productDetailedPromises);
-
-      const modifiedCheckoutLineItemData = {
-        items: allProductDetails.map((product) => {
-          const lineItem = checkoutDetails.line_items.find(
-            (lineItem) => lineItem.product_id === product.id,
-          );
-
-          return {
-            title: product.title,
-            description: product.body_html,
-            images: product.images.map((image) => ({
-              id: image.id,
-              alt: image.alt,
-              src: image.src,
-            })),
-            productId: lineItem.product_id,
-            variantId: lineItem.variant_id,
-            price: formatter.format(+lineItem.price),
-            comparePrice: lineItem.compare_at_price
-              ? formatter.format(+lineItem.compare_at_price)
-              : null,
-            variants: product.variants.map((variant) => ({
-              id: variant.id,
-              title: variant.title,
-            })),
-          };
-        }),
-        checkoutUrl: checkoutDetails.web_url,
-        subtotal: formatter.format(+checkoutDetails.subtotal_price),
-        taxes: formatter.format(+checkoutDetails.total_tax),
-        total: formatter.format(+checkoutDetails.total_price),
+      checkoutDetails = {
+        ...checkoutDetails,
+        subtotalPrice: formatter.format(checkoutDetails.subtotalPrice.amount),
+        totalPrice: formatter.format(checkoutDetails.totalPrice.amount),
+        totalTax: formatter.format(checkoutDetails.totalTax.amount),
       };
-      return [{ ...modifiedCheckoutLineItemData }];
+
+      console.log(JSON.stringify(checkoutDetails));
+
+      // const productDetailedPromises = checkoutDetails.line_items.map(
+      //   (product) => shopify.product.get(+product.product_id),
+      // );
+
+      // const allProductDetails = await Promise.all(productDetailedPromises);
+
+      // const modifiedCheckoutLineItemData = {
+      //   items: allProductDetails.map((product) => {
+      //     const lineItem = checkoutDetails.line_items.find(
+      //       (lineItem) => lineItem.product_id === product.id,
+      //     );
+
+      //     return {
+      //       id: (lineItem as any).id,
+      //       title: product.title,
+      //       description: product.body_html,
+      //       images: product.images.map((image) => ({
+      //         id: image.id,
+      //         alt: image.alt,
+      //         src: image.src,
+      //       })),
+      //       productId: lineItem.product_id,
+      //       variantId: lineItem.variant_id,
+      //       price: formatter.format(+lineItem.price),
+      //       comparePrice: lineItem.compare_at_price
+      //         ? formatter.format(+lineItem.compare_at_price)
+      //         : null,
+      //       variants: product.variants.map((variant) => ({
+      //         id: variant.id,
+      //         title: variant.title,
+      //       })),
+      //     };
+      //   }),
+      //   checkoutUrl: checkout.shopifyAbandonedCheckoutURL,
+      //   checkoutId: checkoutId,
+      //   subtotal: formatter.format(+checkoutDetails.subtotal_price),
+      //   taxes: formatter.format(+checkoutDetails.total_tax),
+      //   total: formatter.format(+checkoutDetails.total_price),
+      // };
+      return [];
+      // return [{ ...modifiedCheckoutLineItemData }];
     } catch (err) {
       this.common.generateErrorResponse(err, 'Shopify');
     }
-
-    // abandoned_checkout_url: data.abandoned_checkout_url,
-    // total_discounts: data.total_discounts,
-    // total_price: data.total_price,
-    // subtotal_price: data.subtotal_price,
-    // total_tax: data.total_tax,
-    // presentment_currency: data.presentment_currency,
-    // customerEmail: data.email,
-    // customerFirstName: data.shipping_address.first_name,
-    // customerLastName: data.shipping_address.last_name,
   }
 
   async addLineItemToCheckout(data: AddLineItemDTO) {
@@ -553,10 +619,10 @@ export class ShopifyService {
               name: true,
             },
           },
-          shopifyCheckoutToken: true,
-          shopifyCheckoutId: true,
+          shopifyAdminCheckoutToken: true,
+          shopifyStorefrontCheckoutId: true,
           shopifyAbandonedCheckoutURL: true,
-          shopifyCartToken: true,
+          shopifyStoreFrontCheckoutToken: true,
         },
       });
 
@@ -565,75 +631,21 @@ export class ShopifyService {
         checkout.ShopifyStore.storeFrontAccessToken,
       );
 
-      const urlSearchParams = new URL(checkout.shopifyAbandonedCheckoutURL);
-
-      const key = urlSearchParams.searchParams.get('key');
-
-      if (!key) {
-        throw new BadRequestException('Key not found');
-      }
-
-      // 'https://zama-merchant.myshopify.com/56549736559/checkouts/ac/Z2NwLWFzaWEtc291dGhlYXN0MTowMUhQUzhHOU4xNDJUVlFZUjQyQjNXNDhXRA/recover?key=a212f8839ec3a2eac1791646284d9c0c'
-
       const variantId = btoa(`gid://shopify/ProductVariant/${data.variantId}`);
-      const checkoutId = btoa(
-        `gid://shopify/Checkout/${checkout.shopifyCheckoutToken}?key=${key}`,
-      );
+      const checkoutId = btoa(checkout.shopifyStorefrontCheckoutId);
 
-      const {
-        data: resData,
-        errors,
-        extensions,
-      } = await shopify.request(
-        `mutation {
-          checkoutLineItemsAdd(
-            checkoutId: "${checkoutId}",
-            lineItems: [
-              {
-                variantId:"${variantId}",
-                quantity: 1
-              }
-            ]
-          ) {
-            checkout {
-              id
-            }
-            checkoutUserErrors {
-              code
-              field
-              message
-            }
-          }
-        }
-      `,
+      this.checkout.addLineItemToStoreFrontCheckout(
+        shopify,
+        checkoutId,
+        variantId,
       );
-      console.log(resData);
-      console.log(extensions);
-      if (errors || resData.checkoutLineItemsAdd?.checkoutUserErrors.length) {
-        console.log(errors?.graphQLErrors);
-        console.log(resData?.checkoutLineItemsAdd?.checkoutUserErrors);
-        throw new BadRequestException(
-          errors?.message ||
-            resData.checkoutLineItemsAdd.checkoutUserErrors[0].message,
-        );
-      }
-      return {
-        data: resData,
-        message: 'Item added to checkout successfully',
-        statusCode: 200,
-      };
     } catch (err) {
       this.common.generateErrorResponse(err, 'Checkout');
     }
   }
 
   async updateLineItemInCheckout(data: UpdateLineItemDTO) {
-    console.log(data);
     return {};
-    // update quantity
-    // {"line_item": {"id": line_item_id, "quantity": new_quantity}}
-    // update the variant
-    // {"id": line_item_id, "variant_id": new_variant_id}
   }
 
   async removeLineItemFromCheckout(data: RemoveLineItemDTO) {
@@ -650,46 +662,43 @@ export class ShopifyService {
               name: true,
             },
           },
-          shopifyCheckoutToken: true,
-          shopifyCheckoutId: true,
+          shopifyAdminCheckoutToken: true,
+          shopifyStorefrontCheckoutId: true,
+          shopifyAbandonedCheckoutURL: true,
+          shopifyStoreFrontCheckoutToken: true,
         },
       });
 
-      const shopify = this.common.shopifyStoreFrontObject(
+      const shopifyStoreFront = this.common.shopifyStoreFrontObject(
         checkout.ShopifyStore.name,
         checkout.ShopifyStore.storeFrontAccessToken,
       );
 
-      const { data: resData, errors } = await shopify.request(
-        `mutation {
-          checkoutLineItemsRemove(
-            checkoutId: gid:\/\/shopify\/Checkout\/${checkout.shopifyCheckoutToken},
-            lineItemIds: []
-          ) {
-            checkout {
-              id
-            }
-            checkoutUserErrors {
-              code
-              field
-              message
-            }
-          }
-        }
-      `,
+      const shopifyAdmin = this.common.shopifyObject(
+        checkout.ShopifyStore.name,
+        checkout.ShopifyStore.accessToken,
       );
-      if (errors || resData.checkoutLineItemsAdd.checkoutUserErrors.length) {
-        console.log(errors.graphQLErrors);
-        throw new BadRequestException(
-          errors?.message ||
-            resData.checkoutLineItemsAdd.checkoutUserErrors[0].message,
-        );
-      }
-      return {
-        data: resData,
-        message: 'Item added to checkout successfully',
-        statusCode: 200,
-      };
+
+      const checkoutId = btoa(checkout.shopifyStorefrontCheckoutId);
+
+      const checkoutDetails = await shopifyAdmin.checkout.get(
+        checkout.shopifyStoreFrontCheckoutToken,
+      );
+
+      const updatedLineItems = checkoutDetails.line_items
+        .filter((lineItem: any) => lineItem.id !== data.lineItemId)
+        .map((lineItem) => ({
+          quantity: lineItem.quantity,
+          variantId: btoa(
+            `gid://shopify/ProductVariant/${lineItem.variant_id}`,
+          ),
+        }));
+
+      this.checkout.replaceStoreFrontCheckoutLineItems(
+        shopifyStoreFront,
+        checkoutId,
+        updatedLineItems,
+      );
     } catch (err) {
       this.common.generateErrorResponse(err, 'Checkout');
     }

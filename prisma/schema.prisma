@@ -60,16 +60,16 @@ model ShopifyStore {
 }
 
 model Checkout {
-  id                          String       @id @unique @default(uuid())
-  shopifyCheckoutId           BigInt       @unique
-  shopifyCheckoutToken        String       @unique
-  shopifyAbandonedCheckoutURL String       @unique
-  shopifyCartToken            String       @unique
-  orderFulFilled              Boolean      @default(false)
-  createdAt                   DateTime     @default(now())
-  updatedAt                   DateTime     @updatedAt
-  shopifyStoreId              String
-  ShopifyStore                ShopifyStore @relation(fields: [shopifyStoreId], references: [id])
+  id                             String       @id @unique @default(uuid())
+  shopifyAdminCheckoutToken      String       @unique
+  shopifyStorefrontCheckoutId    String       @unique
+  shopifyStoreFrontCheckoutToken String       @unique
+  shopifyAbandonedCheckoutURL    String       @unique
+  orderFulFilled                 Boolean      @default(false)
+  createdAt                      DateTime     @default(now())
+  updatedAt                      DateTime     @updatedAt
+  shopifyStoreId                 String
+  ShopifyStore                   ShopifyStore @relation(fields: [shopifyStoreId], references: [id])
 
   @@map("checkouts")
 }

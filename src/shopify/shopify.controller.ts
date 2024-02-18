@@ -21,6 +21,7 @@ import {
   DiscountPercentageDTO,
   InstallShopifyDTO,
   ProductDTO,
+  RemoveLineItemDTO,
   UpdateLineItemDTO,
 } from './dto';
 import { UserId } from 'src/decorators';
@@ -131,5 +132,15 @@ export class ShopifyController {
   @Post('/checkout-email/update-line-item')
   updateLineItemInCheckout(@Body() data: UpdateLineItemDTO) {
     return this.shopifyService.updateLineItemInCheckout(data);
+  }
+
+  @Public()
+  @Post('/checkout-email/remove-line-item')
+  @UseInterceptors(FileInterceptor('file'))
+  removeLineItemFromCheckout(
+    @Body()
+    data: RemoveLineItemDTO,
+  ) {
+    return this.shopifyService.removeLineItemFromCheckout(data);
   }
 }

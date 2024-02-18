@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { CheckoutService } from 'src/checkout/checkout.service';
 import { CommonService } from 'src/common/common.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -9,6 +10,7 @@ export class WebhookService {
     private common: CommonService,
     private config: ConfigService,
     private prisma: PrismaService,
+    private checkout: CheckoutService,
   ) {}
 
   async shopifyWebhook(userId: string) {
@@ -160,25 +162,95 @@ export class WebhookService {
   }
 
   async shopifyCheckoutCreated(data: any) {
-    console.log('create');
-    console.log(data);
-    try {
-      const url = new URL(data.abandoned_checkout_url);
-      const shopName = url.host;
+    console.log(`\n\ncheckout created from ${data.landing_site}`);
 
+    if (data.landing_site.includes('/api/2023-10/graphql.json')) {
+      console.log('Ignoring checkout creation as its coming from api');
+      return {};
+    }
+
+    const url = new URL(data.abandoned_checkout_url);
+    const shopName = url.host;
+
+    console.log('fetching the checkout and store data');
+    const checkoutPromise = this.prisma.checkout.findUnique({
+      where: {
+        shopifyAdminCheckoutToken: data.token,
+      },
+      select: {
+        ShopifyStore: {
+          select: {
+            storeFrontAccessToken: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    const storePromise = this.prisma.shopifyStore.findUnique({
+      where: {
+        name: shopName,
+      },
+      select: {
+        storeFrontAccessToken: true,
+        name: true,
+      },
+    });
+
+    const [checkout, store] = await this.prisma.$transaction([
+      checkoutPromise,
+      storePromise,
+    ]);
+
+    if (checkout) {
+      console.log('Ignoring it, as checkout already exist');
+      return {};
+    }
+
+    try {
+      console.log('Not ignoring it');
+
+      const shopifyStoreFront = this.common.shopifyStoreFrontObject(
+        store.name,
+        store.storeFrontAccessToken,
+      );
+
+      const lineItems = data.line_items.map((lineItem) => ({
+        variantId: btoa(`gid://shopify/ProductVariant/${lineItem.key}`),
+        quantity: lineItem.quantity,
+      }));
+
+      // created a new storefront checkout
+      console.log('creating storefront checkout');
+      const storefrontCheckoutData =
+        await this.checkout.createStoreFrontCheckoutWithLineItems(
+          shopifyStoreFront,
+          lineItems,
+        );
+
+      const storefrontUrl = new URL(storefrontCheckoutData.data.webUrl);
+      const storeFrontToken = storefrontUrl.pathname
+        .split('checkouts/')[1]
+        .replace('/recover', '');
+
+      console.log('creating record in database');
       await this.prisma.checkout.create({
         data: {
-          shopifyCheckoutId: data.id,
-          shopifyCartToken: data.cart_token,
-          shopifyCheckoutToken: data.token,
-          shopifyAbandonedCheckoutURL: data.abandoned_checkout_url,
+          shopifyAdminCheckoutToken: data.token,
+          shopifyStoreFrontCheckoutToken: storeFrontToken,
+          shopifyAbandonedCheckoutURL: storefrontCheckoutData.data.webUrl,
+          shopifyStorefrontCheckoutId: storefrontCheckoutData.data.id,
           ShopifyStore: {
             connect: {
               name: shopName,
             },
           },
         },
+        select: {
+          id: true,
+        },
       });
+      console.log('Done\n\n');
       return {};
     } catch (err) {
       this.common.generateErrorResponse(err, 'Shopify Checkout');
@@ -189,35 +261,36 @@ export class WebhookService {
   async shopifyCheckoutUpdated(data: any) {
     console.log('update');
     console.log(data);
-    const checkout = await this.prisma.checkout.findUnique({
-      where: {
-        shopifyCheckoutId: data.id,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (!checkout) {
-      return {};
-    }
-
-    try {
-      await this.prisma.checkout.update({
-        where: {
-          shopifyCheckoutId: data.id,
-        },
-        data: {
-          shopifyCheckoutId: data.id,
-          shopifyCartToken: data.cart_token,
-          shopifyCheckoutToken: data.token,
-          shopifyAbandonedCheckoutURL: data.abandoned_checkout_url,
-        },
-      });
-    } catch (err) {
-      this.common.generateErrorResponse(err, 'Shopify Checkout');
-    }
     return {};
+    // const checkout = await this.prisma.checkout.findUnique({
+    //   where: {
+    //     shopifyCheckoutId: data.id,
+    //   },
+    //   select: {
+    //     id: true,
+    //   },
+    // });
+
+    // if (!checkout) {
+    //   return {};
+    // }
+
+    // try {
+    //   await this.prisma.checkout.update({
+    //     where: {
+    //       shopifyCheckoutId: data.id,
+    //     },
+    //     data: {
+    //       shopifyCheckoutId: data.id,
+    //       shopifyCartToken: data.cart_token,
+    //       shopifyCheckoutToken: data.token,
+    //       shopifyAbandonedCheckoutURL: data.abandoned_checkout_url,
+    //     },
+    //   });
+    // } catch (err) {
+    //   this.common.generateErrorResponse(err, 'Shopify Checkout');
+    // }
+    // return {};
   }
 
   async shopifyOrderCreated(data: any) {
