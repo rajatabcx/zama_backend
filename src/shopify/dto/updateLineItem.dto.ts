@@ -1,16 +1,23 @@
-import { IsNotEmpty, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class UpdateLineItemDTO {
-  @IsNumber()
+  @IsString()
   @IsNotEmpty()
-  checkoutId: number;
-  @IsNumber()
+  checkoutId: string;
+
+  @IsString()
   @IsNotEmpty()
-  lineItemId: number;
-  @IsNumber()
+  lineItemId: string;
+
+  @IsString()
   @IsNotEmpty()
-  variantId: number;
-  @IsNumber()
+  variantId: string;
+
+  @IsString()
   @IsNotEmpty()
-  quantity: number;
+  quantity: string;
+
+  @IsString()
+  @IsNotEmpty()
+  operation: string;
 }

@@ -11,7 +11,7 @@ import { ShopifyModule } from './shopify/shopify.module';
 import { UserModule } from './user/user.module';
 import { WebhookModule } from './webhook/webhook.module';
 import { EmailModule } from './email/email.module';
-import { CheckoutModule } from './checkout/checkout.module';
+import { ShopifyGraphqlModule } from './shopify-graphql/shopify-graphql.module';
 
 @Module({
   imports: [
@@ -25,7 +25,7 @@ import { CheckoutModule } from './checkout/checkout.module';
     UserModule,
     WebhookModule,
     EmailModule,
-    CheckoutModule,
+    ShopifyGraphqlModule,
   ],
   controllers: [AppController],
   providers: [

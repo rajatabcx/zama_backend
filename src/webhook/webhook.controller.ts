@@ -32,7 +32,7 @@ export class WebhookController {
   @Public()
   @Post('/shopify/cart-created')
   shopifyCartCreated(@Body() data: any) {
-    return this.webhookService.shopifyCartCreated(data);
+    return this.webhookService.shopifyCartCreated();
   }
 
   @Public()
@@ -44,12 +44,12 @@ export class WebhookController {
   @Public()
   @Post('/shopify/order-created')
   shopifyOrderCreated(@Body() data: any) {
-    return this.webhookService.shopifyOrderCreated(data);
+    return this.webhookService.shopifyOrderCreated();
   }
 
   @Public()
   @Post('/shopify/order-updated')
   shopifyOrderUpdated(@Body() data: any) {
-    return this.webhookService.shopifyOrderUpdated(data);
+    return this.webhookService.shopifyOrderUpdated();
   }
 }

@@ -130,6 +130,7 @@ export class ShopifyController {
 
   @Public()
   @Post('/checkout-email/update-line-item')
+  @UseInterceptors(FileInterceptor('file'))
   updateLineItemInCheckout(@Body() data: UpdateLineItemDTO) {
     return this.shopifyService.updateLineItemInCheckout(data);
   }

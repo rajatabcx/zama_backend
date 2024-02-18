@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { CheckoutService } from 'src/checkout/checkout.service';
 import { CommonService } from 'src/common/common.service';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { ShopifyGraphqlService } from 'src/shopify-graphql/shopify-graphql.service';
 
 @Injectable()
 export class WebhookService {
@@ -10,7 +10,7 @@ export class WebhookService {
     private common: CommonService,
     private config: ConfigService,
     private prisma: PrismaService,
-    private checkout: CheckoutService,
+    private shopifyGraphql: ShopifyGraphqlService,
   ) {}
 
   async shopifyWebhook(userId: string) {
@@ -122,7 +122,7 @@ export class WebhookService {
   }
 
   async shopifyAppUninstalled(data: any) {
-    // console.log('App Uninstalled');
+    console.log('App Uninstalled');
 
     const shopifyStore = await this.prisma.shopifyStore.findUnique({
       where: {
@@ -155,13 +155,8 @@ export class WebhookService {
     return {};
   }
 
-  async shopifyCartCreated(data: any) {
-    // console.log('Cart Created');
-    // console.log(data);
-    return {};
-  }
-
   async shopifyCheckoutCreated(data: any) {
+    console.log(data);
     console.log(`\n\ncheckout created from ${data.landing_site}`);
 
     if (data.landing_site.includes('/api/2023-10/graphql.json')) {
@@ -222,13 +217,17 @@ export class WebhookService {
 
       // created a new storefront checkout
       console.log('creating storefront checkout');
-      const storefrontCheckoutData =
-        await this.checkout.createStoreFrontCheckoutWithLineItems(
-          shopifyStoreFront,
-          lineItems,
-        );
+      const { data: resData } = await this.shopifyGraphql.createCheckout(
+        shopifyStoreFront,
+        lineItems,
+      );
 
-      const storefrontUrl = new URL(storefrontCheckoutData.data.webUrl);
+      const storefrontCheckoutData = {
+        id: resData.checkoutCreate.checkout.id,
+        webUrl: resData.checkoutCreate.checkout.webUrl,
+      };
+
+      const storefrontUrl = new URL(storefrontCheckoutData.webUrl);
       const storeFrontToken = storefrontUrl.pathname
         .split('checkouts/')[1]
         .replace('/recover', '');
@@ -238,8 +237,8 @@ export class WebhookService {
         data: {
           shopifyAdminCheckoutToken: data.token,
           shopifyStoreFrontCheckoutToken: storeFrontToken,
-          shopifyAbandonedCheckoutURL: storefrontCheckoutData.data.webUrl,
-          shopifyStorefrontCheckoutId: storefrontCheckoutData.data.id,
+          shopifyAbandonedCheckoutURL: storefrontCheckoutData.webUrl,
+          shopifyStorefrontCheckoutId: storefrontCheckoutData.id,
           ShopifyStore: {
             connect: {
               name: shopName,
@@ -260,7 +259,7 @@ export class WebhookService {
 
   async shopifyCheckoutUpdated(data: any) {
     console.log('update');
-    console.log(data);
+    // console.log(data);
     return {};
     // const checkout = await this.prisma.checkout.findUnique({
     //   where: {
@@ -293,13 +292,19 @@ export class WebhookService {
     // return {};
   }
 
-  async shopifyOrderCreated(data: any) {
+  async shopifyCartCreated() {
+    // console.log('Cart Created');
+    // console.log(data);
+    return {};
+  }
+
+  async shopifyOrderCreated() {
     // console.log('Order Created');
     // console.log(data);
     return {};
   }
 
-  async shopifyOrderUpdated(data: any) {
+  async shopifyOrderUpdated() {
     // console.log('Order Updated');
     // console.log(data);
     return {};
