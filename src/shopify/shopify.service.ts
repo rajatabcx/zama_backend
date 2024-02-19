@@ -317,6 +317,28 @@ export class ShopifyService {
     }
   }
 
+  async allCheckouts(userId: string) {
+    try {
+      const checkouts = await this.prisma.checkout.findMany({
+        where: {
+          ShopifyStore: {
+            userId,
+          },
+        },
+        select: {
+          id: true,
+          email: true,
+          emailSent: true,
+          orderFulFilled: true,
+          createdAt: true,
+        },
+      });
+      return { data: checkouts, statusCode: 200, message: 'SUCCESS' };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Checkout');
+    }
+  }
+
   async addStoreFrontApiKey(userId: string, data) {
     try {
       await this.prisma.shopifyStore.update({
@@ -410,8 +432,9 @@ export class ShopifyService {
 
       const allProductDetails = await Promise.all(productDetailedPromises);
 
-      const modifiedProducts = allProductDetails.map((product) => ({
+      const modifiedProducts = allProductDetails.map((product, index) => ({
         id: product.id,
+        index: index + 1,
         title: product.title,
         body_html: product.body_html,
         vendor: product.vendor,
@@ -508,9 +531,10 @@ export class ShopifyService {
       );
 
       const modifiedCheckoutLineItemData = {
-        items: variantLineItems.map((variant: any) => {
+        items: variantLineItems.map((variant: any, index: number) => {
           return {
             id: variant.lineItemId,
+            index: index + 1,
             quantity: variant.quantity,
             title: variant.product.title,
             description: variant.product.description,

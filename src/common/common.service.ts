@@ -10,6 +10,11 @@ import * as Shopify from 'shopify-api-node';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SelectedProducts } from 'src/shopify/type';
 import { createStorefrontApiClient } from '@shopify/storefront-api-client';
+import {
+  Configuration,
+  EmailsApi,
+  TemplatesApi,
+} from '@elasticemail/elasticemail-client-ts-axios';
 
 @Injectable()
 export class CommonService {
@@ -157,5 +162,24 @@ export class CommonService {
       currency: currency,
     });
     return formatter;
+  }
+
+  async emailClient(userId: string) {
+    const emailSetting = await this.prisma.emailSettings.findUnique({
+      where: {
+        userId,
+      },
+      select: {
+        elasticEmailApiKey: true,
+      },
+    });
+    const config = new Configuration({
+      apiKey: emailSetting.elasticEmailApiKey,
+    });
+
+    const templatesApi = new TemplatesApi(config);
+    const emailsApi = new EmailsApi(config);
+
+    return { templatesApi, emailsApi };
   }
 }

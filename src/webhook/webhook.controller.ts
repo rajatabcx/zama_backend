@@ -12,7 +12,7 @@ export class WebhookController {
     return this.webhookService.shopifyWebhook(userId);
   }
 
-  @Patch('/shopify/register')
+  @Patch('/shopify')
   registerWebhooks(@UserId() userId: string) {
     return this.webhookService.registerWebhooks(userId);
   }
@@ -31,7 +31,7 @@ export class WebhookController {
 
   @Public()
   @Post('/shopify/cart-created')
-  shopifyCartCreated(@Body() data: any) {
+  shopifyCartCreated() {
     return this.webhookService.shopifyCartCreated();
   }
 
@@ -43,13 +43,13 @@ export class WebhookController {
 
   @Public()
   @Post('/shopify/order-created')
-  shopifyOrderCreated(@Body() data: any) {
+  shopifyOrderCreated() {
     return this.webhookService.shopifyOrderCreated();
   }
 
   @Public()
   @Post('/shopify/order-updated')
-  shopifyOrderUpdated(@Body() data: any) {
+  shopifyOrderUpdated() {
     return this.webhookService.shopifyOrderUpdated();
   }
 }

@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Patch, Post } from '@nestjs/common';
 import { UserId } from 'src/decorators';
 import { EmailService } from './email.service';
-import { CreateEmailSettingsDTO } from './dto';
+import { CreateEmailSettingsDTO, UpdateEmailSettingsDTO } from './dto';
 
 @Controller('/email')
 export class EmailController {
@@ -18,13 +18,13 @@ export class EmailController {
   @Patch('/')
   updateEmailSettings(
     @UserId() userId: string,
-    @Body() data: CreateEmailSettingsDTO,
+    @Body() data: UpdateEmailSettingsDTO,
   ) {
     return this.emailService.updateEmailSettings(userId, data);
   }
 
-  @Get('/')
-  emailSettings(@UserId() userId: string) {
-    return this.emailService.emailSettings(userId);
+  @Get('/templates')
+  emailTemplates(@UserId() userId: string) {
+    return this.emailService.emailTemplates(userId);
   }
 }

@@ -156,7 +156,6 @@ export class WebhookService {
   }
 
   async shopifyCheckoutCreated(data: any) {
-    console.log(data);
     console.log(`\n\ncheckout created from ${data.landing_site}`);
 
     if (data.landing_site.includes('/api/2023-10/graphql.json')) {
@@ -259,36 +258,51 @@ export class WebhookService {
 
   async shopifyCheckoutUpdated(data: any) {
     console.log('update');
-    // console.log(data);
-    return {};
-    // const checkout = await this.prisma.checkout.findUnique({
-    //   where: {
-    //     shopifyCheckoutId: data.id,
-    //   },
-    //   select: {
-    //     id: true,
-    //   },
-    // });
+    // TODO: whenever checkout comes check for the user data and update them specifically email, then everything else
 
-    // if (!checkout) {
-    //   return {};
-    // }
+    if (!data.email) {
+      console.log('email not found ignoring');
+      return {};
+    }
 
-    // try {
-    //   await this.prisma.checkout.update({
-    //     where: {
-    //       shopifyCheckoutId: data.id,
-    //     },
-    //     data: {
-    //       shopifyCheckoutId: data.id,
-    //       shopifyCartToken: data.cart_token,
-    //       shopifyCheckoutToken: data.token,
-    //       shopifyAbandonedCheckoutURL: data.abandoned_checkout_url,
-    //     },
-    //   });
-    // } catch (err) {
-    //   this.common.generateErrorResponse(err, 'Shopify Checkout');
-    // }
+    console.log('Email found');
+
+    const checkout = await this.prisma.checkout.findFirst({
+      where: {
+        OR: [
+          { shopifyStoreFrontCheckoutToken: data.token },
+          { shopifyAdminCheckoutToken: data.token },
+        ],
+      },
+      select: {
+        id: true,
+        email: true,
+      },
+    });
+
+    if (!checkout) {
+      console.log('Checkout not found ignore');
+      return {};
+    }
+
+    if (checkout.email) {
+      console.log('Email already exists ignoring it');
+      return {};
+    }
+
+    try {
+      console.log('Updating with email');
+      await this.prisma.checkout.update({
+        where: {
+          id: checkout.id,
+        },
+        data: {
+          email: data.email,
+        },
+      });
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Shopify Checkout');
+    }
     // return {};
   }
 

@@ -101,6 +101,11 @@ export class ShopifyController {
     return this.shopifyService.removeDiscount(userId);
   }
 
+  @Get('/checkout/all')
+  allCheckouts(@UserId() userId: string) {
+    return this.shopifyService.allCheckouts(userId);
+  }
+
   @Get('/check-connection')
   checkConnection(@UserId() userId: string) {
     return this.shopifyService.checkConnection(userId);

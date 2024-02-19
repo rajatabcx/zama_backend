@@ -11,7 +11,7 @@ export class EmailService {
     try {
       await this.prisma.emailSettings.create({
         data: {
-          stripoApiKey: data.stripoApiKey,
+          elasticEmailApiKey: data.elasticEmailApiKey,
           userId,
         },
       });
@@ -27,7 +27,7 @@ export class EmailService {
           userId,
         },
         data: {
-          stripoApiKey: data.stripoApiKey,
+          elasticEmailApiKey: data.elasticApiKey,
         },
       });
     } catch (err) {
@@ -42,7 +42,7 @@ export class EmailService {
           userId,
         },
         select: {
-          stripoApiKey: true,
+          elasticEmailApiKey: true,
         },
       });
       return { data: email, statusCode: 200, message: 'SUCCESS' };
@@ -50,4 +50,59 @@ export class EmailService {
       this.common.generateErrorResponse(err, 'Email Settings');
     }
   }
+
+  async emailTemplates(userId: string) {
+    try {
+      const { templatesApi } = await this.common.emailClient(userId);
+      const { data: templates } = await templatesApi.templatesGet(
+        ['Global', 'Personal'],
+        ['RawHTML'],
+        10,
+      );
+      return {
+        data: templates.map((template) => ({
+          name: template.Name,
+          createdAt: template.DateAdded,
+          subject: template.Subject,
+        })),
+        statusCode: '200',
+        message: 'SUCCESS',
+      };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Email Templates');
+    }
+  }
+
+  // async sendEmail(checkoutId: string) {
+  //   const config = new Configuration({
+  //     apiKey:
+  //       'E99EE013880471A1DF11467400C87C114FFA69F70BF0EF74FE014D4554E9748A14C9D43BA244D1C497621A6CA7A9D0E7',
+  //   });
+
+  //   const emailsApi = new EmailsApi(config);
+
+  //   const emailMessageData: EmailTransactionalMessageData = {
+  //     Recipients: {
+  //       // To: ['srijitasengupta23@gmail.com'],
+  //       To: ['rajat.abcx@gmail.com'],
+  //     },
+  //     Content: {
+  //       From: 'rajat.abcx@gmail.com',
+  //       Subject: 'Please complete your checkout',
+  //       TemplateName: 'Checkout',
+  //     },
+  //   };
+
+  //   const {
+  //     data: { TransactionID, MessageID },
+  //   } = await emailsApi.emailsTransactionalPost(emailMessageData);
+  //   return {
+  //     data: {
+  //       TransactionID,
+  //       MessageID,
+  //     },
+  //     message: 'SUCCESS',
+  //     statusCode: 200,
+  //   };
+  // }
 }
