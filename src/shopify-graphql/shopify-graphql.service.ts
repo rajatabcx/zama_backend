@@ -3,7 +3,7 @@ import { StorefrontApiClient } from '@shopify/storefront-api-client';
 
 @Injectable()
 export class ShopifyGraphqlService {
-  async getCheckoutDetails(
+  getCheckoutDetails(
     shopifyStoreFront: StorefrontApiClient,
     checkoutId: string,
   ) {
@@ -15,6 +15,28 @@ export class ShopifyGraphqlService {
             ... on Checkout {
                 id
                 currencyCode
+                discountApplications(first: 10){
+                  edges{
+                    node{
+                      ... on DiscountCodeApplication{
+                        allocationMethod
+                        applicable
+                        targetType
+                        targetSelection
+                        code
+                        value {
+                          ... on PricingPercentageValue{
+                            percentage
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+                lineItemsSubtotalPrice{
+                  amount
+                  currencyCode
+                }
                 subtotalPrice{
                   amount
                   currencyCode
@@ -79,7 +101,7 @@ export class ShopifyGraphqlService {
     );
   }
 
-  async createCheckout(
+  createCheckout(
     shopifyStoreFront: StorefrontApiClient,
     lineItems: { variantId: string; quantity: number }[],
   ) {
@@ -107,12 +129,36 @@ export class ShopifyGraphqlService {
       `);
   }
 
-  async replaceLineItemsFromCheckoutItems(
+  checkoutEmailUpdate(
+    shopifyStoreFront: StorefrontApiClient,
+    checkoutId: string,
+    email: string,
+  ) {
+    return shopifyStoreFront.request(`mutation {
+      checkoutEmailUpdateV2(
+        checkoutId: "${checkoutId}",
+        email: "${email}"
+      ) {
+            checkout{
+              id
+              webUrl
+            }
+            checkoutUserErrors{
+              code
+              field
+              message
+            }
+          }
+        }
+      `);
+  }
+
+  replaceLineItemsFromCheckoutItems(
     shopifyStoreFront: StorefrontApiClient,
     checkoutId: string,
     lineItems: { variantId: string; quantity: number }[],
   ) {
-    await shopifyStoreFront.request(
+    return shopifyStoreFront.request(
       `mutation {
           checkoutLineItemsReplace(
               checkoutId: "${checkoutId}",
@@ -136,12 +182,12 @@ export class ShopifyGraphqlService {
     );
   }
 
-  async removeLineItemFromCheckout(
+  removeLineItemFromCheckout(
     shopifyStoreFront: StorefrontApiClient,
     checkoutId: string,
     lineItemId: string,
   ) {
-    await shopifyStoreFront.request(
+    return shopifyStoreFront.request(
       `mutation {
         checkoutLineItemsRemove(
               checkoutId: "${checkoutId}",
@@ -160,12 +206,12 @@ export class ShopifyGraphqlService {
     );
   }
 
-  async addLineItemsToCheckout(
+  addLineItemsToCheckout(
     shopifyStoreFront: StorefrontApiClient,
     checkoutId: string,
     variantId: string,
   ) {
-    return await shopifyStoreFront.request(
+    return shopifyStoreFront.request(
       `mutation {
           checkoutLineItemsAdd(
             checkoutId: "${checkoutId}",
@@ -186,14 +232,14 @@ export class ShopifyGraphqlService {
     );
   }
 
-  async updateLineItemsInCheckout(
+  updateLineItemsInCheckout(
     shopifyStoreFront: StorefrontApiClient,
     checkoutId: string,
     lineItemId: string,
     variantId: string,
     quantity: number,
   ) {
-    return await shopifyStoreFront.request(
+    return shopifyStoreFront.request(
       `mutation {
         checkoutLineItemsUpdate(
           checkoutId: "${checkoutId}",
@@ -211,6 +257,52 @@ export class ShopifyGraphqlService {
               }
             }
           `,
+    );
+  }
+
+  applyDiscountCode(
+    shopifyStoreFront: StorefrontApiClient,
+    checkoutId: string,
+    discountCode: string,
+  ) {
+    return shopifyStoreFront.request(
+      `mutation {
+        checkoutDiscountCodeApplyV2(
+              checkoutId: "${checkoutId}",
+              discountCode: "${discountCode}"
+            ) {
+              checkout{
+                id
+              }
+              checkoutUserErrors  {
+                field
+                message
+              }
+            }
+          }
+        `,
+    );
+  }
+
+  removeDiscountCode(
+    shopifyStoreFront: StorefrontApiClient,
+    checkoutId: string,
+  ) {
+    return shopifyStoreFront.request(
+      `mutation {
+        checkoutDiscountCodeRemove(
+              checkoutId: "${checkoutId}"
+            ) {
+              checkout{
+                id
+              }
+              checkoutUserErrors  {
+                field
+                message
+              }
+            }
+          }
+        `,
     );
   }
 }

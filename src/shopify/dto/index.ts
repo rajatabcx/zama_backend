@@ -4,3 +4,5 @@ export * from './product.dto';
 export * from './addLineItem.dto';
 export * from './updateLineItem.dto';
 export * from './removeLineItem.dto';
+export * from './applyDiscountCode.dto';
+export * from './updateHourDelay.dto';

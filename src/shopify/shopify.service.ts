@@ -4,10 +4,12 @@ import { Request, Response } from 'express';
 import { CommonService } from 'src/common/common.service';
 import {
   AddLineItemDTO,
+  ApplyDiscountCodeDTO,
   DiscountPercentageDTO,
   InstallShopifyDTO,
   ProductDTO,
   RemoveLineItemDTO,
+  UpdateHourDelayDTO,
   UpdateLineItemDTO,
 } from './dto';
 import { HttpService } from '@nestjs/axios';
@@ -16,6 +18,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { SelectedProducts } from './type';
 import { ShopifyGraphqlService } from 'src/shopify-graphql/shopify-graphql.service';
+import { RemoveDiscountCodeDTO } from './dto/removeDiscountCode.dto';
 
 @Injectable()
 export class ShopifyService {
@@ -153,6 +156,7 @@ export class ShopifyService {
           message: 'SUCCESS',
           statusCode: 200,
         };
+
       const { shopifyStore } = shopifyObj;
 
       if (shopifyStore.selectedProductIds.length === 5) {
@@ -174,6 +178,49 @@ export class ShopifyService {
       return {
         data: {},
         message: 'Product added successfully',
+        statusCode: 200,
+      };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Shopify Product');
+    }
+  }
+
+  async removeProduct(userId: string, data: ProductDTO) {
+    try {
+      const shopifyObj = await this.common.shopifyObjectForShop(userId);
+
+      if (!shopifyObj.connected)
+        return {
+          data: { connected: false },
+          message: 'SUCCESS',
+          statusCode: 200,
+        };
+
+      const { shopifyStore } = shopifyObj;
+
+      if (shopifyStore.selectedProductIds.length === 0) {
+        throw new BadRequestException('Products not available to remove');
+      }
+
+      const modifiedData = shopifyStore.selectedProductIds.filter(
+        (product) => +product.variantId !== data.variantId,
+      );
+
+      const json = modifiedData as unknown as Prisma.JsonArray;
+
+      await this.prisma.shopifyStore.update({
+        where: {
+          userId,
+        },
+        data: {
+          selectedProductIds: {
+            set: json,
+          },
+        },
+      });
+      return {
+        data: {},
+        message: 'Product removed successfully',
         statusCode: 200,
       };
     } catch (err) {
@@ -319,6 +366,15 @@ export class ShopifyService {
 
   async allCheckouts(userId: string) {
     try {
+      const shopifyObj = await this.common.shopifyObjectForShop(userId);
+
+      if (!shopifyObj.connected)
+        return {
+          data: { connected: false },
+          message: 'SUCCESS',
+          statusCode: 200,
+        };
+
       const checkouts = await this.prisma.checkout.findMany({
         where: {
           ShopifyStore: {
@@ -341,6 +397,15 @@ export class ShopifyService {
 
   async addStoreFrontApiKey(userId: string, data) {
     try {
+      const shopifyObj = await this.common.shopifyObjectForShop(userId);
+
+      if (!shopifyObj.connected)
+        return {
+          data: { connected: false },
+          message: 'SUCCESS',
+          statusCode: 200,
+        };
+
       await this.prisma.shopifyStore.update({
         where: {
           userId,
@@ -378,6 +443,50 @@ export class ShopifyService {
       };
     } catch (err) {
       this.common.generateErrorResponse(err, 'Storefront access token');
+    }
+  }
+
+  async hour(userId: string) {
+    try {
+      const shopifyObj = await this.common.shopifyObjectForShop(userId);
+
+      if (!shopifyObj.connected)
+        return {
+          data: { connected: false },
+          message: 'SUCCESS',
+          statusCode: 200,
+        };
+      return {
+        data: { hour: shopifyObj.shopifyStore.hourDelay },
+        message: 'SUCCESS',
+        statusCode: 200,
+      };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Hour');
+    }
+  }
+
+  async updateHour(userId: string, data: UpdateHourDelayDTO) {
+    try {
+      const shopifyObj = await this.common.shopifyObjectForShop(userId);
+
+      if (!shopifyObj.connected)
+        return {
+          data: { connected: false },
+          message: 'SUCCESS',
+          statusCode: 200,
+        };
+      await this.prisma.shopifyStore.update({
+        where: {
+          userId,
+        },
+        data: {
+          hourDelay: data.hour,
+        },
+      });
+      return { data: {}, message: 'SUCCESS', statusCode: 200 };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Hour');
     }
   }
 
@@ -545,12 +654,12 @@ export class ShopifyService {
             variantId: variant.id,
             price: shopData.money_format.replace(
               '{{amount}}',
-              variant.price.amount,
+              (variant.price.amount * variant.quantity).toFixed(2),
             ),
             comparePrice: variant.compareAtPrice
               ? shopData.money_format.replace(
                   '{{amount}}',
-                  variant.compareAtPrice.amount,
+                  (variant.compareAtPrice.amount * variant.quantity).toFixed(2),
                 )
               : null,
             variants: variant.product.variants.edges.map((variant) => ({
@@ -562,9 +671,19 @@ export class ShopifyService {
         checkoutUrl: checkout.shopifyAbandonedCheckoutURL,
         checkoutId,
         taxIncluded: checkoutDetails.taxIncluded,
+        discountCodes: checkoutDetails.discountApplications.edges.map(
+          (discountObj) => ({ code: discountObj.node.code }),
+        ),
+        discountAmount: shopData.money_with_currency_format.replace(
+          '{{amount}}',
+          (
+            checkoutDetails.lineItemsSubtotalPrice.amount -
+            checkoutDetails.subtotalPrice.amount
+          ).toFixed(2),
+        ),
         subtotal: shopData.money_format.replace(
           '{{amount}}',
-          checkoutDetails.subtotalPrice.amount,
+          checkoutDetails.lineItemsSubtotalPrice.amount,
         ),
         taxes: shopData.money_format.replace(
           '{{amount}}',
@@ -623,15 +742,24 @@ export class ShopifyService {
   }
 
   async updateLineItemInCheckout(data: UpdateLineItemDTO) {
+    console.log(data);
+    return;
     try {
       const newQuantity =
-        data.operation === '+' ? +data.quantity + 1 : +data.quantity - 1;
+        data.operation === '+'
+          ? +data.quantity + 1
+          : data.operation === '-'
+          ? +data.quantity - 1
+          : +data.quantity;
+
       if (newQuantity === 0) {
-        await this.removeLineItemFromCheckout({
+        const res = await this.removeLineItemFromCheckout({
           checkoutId: data.checkoutId,
           lineItemId: data.lineItemId,
         });
+        return res;
       }
+
       const checkout = await this.prisma.checkout.findUnique({
         where: {
           id: data.checkoutId,
@@ -710,6 +838,87 @@ export class ShopifyService {
       );
 
       return { data: 'Removed line item from checkout successfully' };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Checkout');
+    }
+  }
+
+  async applyDiscountCode(data: ApplyDiscountCodeDTO) {
+    try {
+      const checkout = await this.prisma.checkout.findUnique({
+        where: {
+          id: data.checkoutId,
+        },
+        select: {
+          ShopifyStore: {
+            select: {
+              storeFrontAccessToken: true,
+              accessToken: true,
+              name: true,
+            },
+          },
+          shopifyStorefrontCheckoutId: true,
+        },
+      });
+
+      const shopifyStoreFront = this.common.shopifyStoreFrontObject(
+        checkout.ShopifyStore.name,
+        checkout.ShopifyStore.storeFrontAccessToken,
+      );
+
+      const checkoutId = btoa(checkout.shopifyStorefrontCheckoutId);
+
+      const { data: resData } = await this.shopifyGraphql.applyDiscountCode(
+        shopifyStoreFront,
+        checkoutId,
+        data.discountCode,
+      );
+
+      if (resData.checkoutDiscountCodeApplyV2.checkoutUserErrors.length) {
+        throw new Error(
+          resData.checkoutDiscountCodeApplyV2.checkoutUserErrors[0].message,
+        );
+      }
+
+      return { data: 'Added discount code to checkout checkout successfully' };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Checkout');
+    }
+  }
+
+  async removeDiscountCode(data: RemoveDiscountCodeDTO) {
+    try {
+      const checkout = await this.prisma.checkout.findUnique({
+        where: {
+          id: data.checkoutId,
+        },
+        select: {
+          ShopifyStore: {
+            select: {
+              storeFrontAccessToken: true,
+              accessToken: true,
+              name: true,
+            },
+          },
+          shopifyStorefrontCheckoutId: true,
+        },
+      });
+
+      const shopifyStoreFront = this.common.shopifyStoreFrontObject(
+        checkout.ShopifyStore.name,
+        checkout.ShopifyStore.storeFrontAccessToken,
+      );
+
+      const checkoutId = btoa(checkout.shopifyStorefrontCheckoutId);
+
+      await this.shopifyGraphql.removeDiscountCode(
+        shopifyStoreFront,
+        checkoutId,
+      );
+
+      return {
+        data: 'Removed discount code to checkout checkout successfully',
+      };
     } catch (err) {
       this.common.generateErrorResponse(err, 'Checkout');
     }

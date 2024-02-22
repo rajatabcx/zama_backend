@@ -292,14 +292,33 @@ export class WebhookService {
 
     try {
       console.log('Updating with email');
-      await this.prisma.checkout.update({
+      const checkoutDB = await this.prisma.checkout.update({
         where: {
           id: checkout.id,
         },
         data: {
           email: data.email,
         },
+        select: {
+          shopifyAdminCheckoutToken: true,
+          ShopifyStore: {
+            select: {
+              name: true,
+              storeFrontAccessToken: true,
+            },
+          },
+        },
       });
+      const shopifyStoreFront = this.common.shopifyStoreFrontObject(
+        checkoutDB.ShopifyStore.name,
+        checkoutDB.ShopifyStore.storeFrontAccessToken,
+      );
+      const checkoutId = btoa(checkoutDB.shopifyAdminCheckoutToken);
+      await this.shopifyGraphql.checkoutEmailUpdate(
+        shopifyStoreFront,
+        checkoutId,
+        data.email,
+      );
     } catch (err) {
       this.common.generateErrorResponse(err, 'Shopify Checkout');
     }

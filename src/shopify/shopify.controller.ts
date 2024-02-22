@@ -18,14 +18,17 @@ import { Request, Response } from 'express';
 import { Public } from 'src/guards';
 import {
   AddLineItemDTO,
+  ApplyDiscountCodeDTO,
   DiscountPercentageDTO,
   InstallShopifyDTO,
   ProductDTO,
   RemoveLineItemDTO,
+  UpdateHourDelayDTO,
   UpdateLineItemDTO,
 } from './dto';
 import { UserId } from 'src/decorators';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { RemoveDiscountCodeDTO } from './dto/removeDiscountCode.dto';
 
 @Controller('/shopify')
 export class ShopifyController {
@@ -75,6 +78,11 @@ export class ShopifyController {
     return this.shopifyService.addProduct(userId, data);
   }
 
+  @Patch('/remove-product')
+  removeProduct(@UserId() userId: string, @Body() data: ProductDTO) {
+    return this.shopifyService.removeProduct(userId, data);
+  }
+
   @Get('/discount')
   discount(@UserId() userId: string) {
     return this.shopifyService.discount(userId);
@@ -104,6 +112,16 @@ export class ShopifyController {
   @Get('/checkout/all')
   allCheckouts(@UserId() userId: string) {
     return this.shopifyService.allCheckouts(userId);
+  }
+
+  @Get('/hour')
+  hour(@UserId() userId: string) {
+    return this.shopifyService.hour(userId);
+  }
+
+  @Patch('/update-hour')
+  updateHour(@UserId() userId: string, @Body() data: UpdateHourDelayDTO) {
+    return this.shopifyService.updateHour(userId, data);
   }
 
   @Get('/check-connection')
@@ -143,10 +161,21 @@ export class ShopifyController {
   @Public()
   @Post('/checkout-email/remove-line-item')
   @UseInterceptors(FileInterceptor('file'))
-  removeLineItemFromCheckout(
-    @Body()
-    data: RemoveLineItemDTO,
-  ) {
+  removeLineItemFromCheckout(@Body() data: RemoveLineItemDTO) {
     return this.shopifyService.removeLineItemFromCheckout(data);
+  }
+
+  @Public()
+  @Post('/checkout-email/apply-discount')
+  @UseInterceptors(FileInterceptor('file'))
+  applyDiscountCode(@Body() data: ApplyDiscountCodeDTO) {
+    return this.shopifyService.applyDiscountCode(data);
+  }
+
+  @Public()
+  @Post('/checkout-email/remove-discount')
+  @UseInterceptors(FileInterceptor('file'))
+  removeDiscountCode(@Body() data: RemoveDiscountCodeDTO) {
+    return this.shopifyService.removeDiscountCode(data);
   }
 }

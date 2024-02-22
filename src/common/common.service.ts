@@ -89,6 +89,7 @@ export class CommonService {
           discountId: number;
           priceRuleId: number;
           webhookRegistered: boolean;
+          hourDelay: number;
         };
       }
     | { connected: false }
@@ -105,6 +106,7 @@ export class CommonService {
         priceRuleId: true,
         selectedProductIds: true,
         webhookRegistered: true,
+        hourDelay: true,
       },
     });
     if (!shopifyStore) {

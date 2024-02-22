@@ -47,6 +47,7 @@ model ShopifyStore {
   selectedProductIds    Json[]
   discountId            BigInt?
   priceRuleId           BigInt?
+  discountCode          String     @default("ZAMA_SPECIAL")
   webhookRegistered     Boolean    @default(false)
   hourDelay             Int        @default(10)
   checkouts             Checkout[]
