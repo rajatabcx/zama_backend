@@ -7,6 +7,11 @@ import { CreateEmailSettingsDTO, UpdateEmailSettingsDTO } from './dto';
 export class EmailController {
   constructor(private emailService: EmailService) {}
 
+  @Get('/')
+  emailSettings(@UserId() userId: string) {
+    return this.emailService.emailSettings(userId);
+  }
+
   @Post('/')
   addEmailSettings(
     @UserId() userId: string,

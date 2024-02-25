@@ -742,8 +742,6 @@ export class ShopifyService {
   }
 
   async updateLineItemInCheckout(data: UpdateLineItemDTO) {
-    console.log(data);
-    return;
     try {
       const newQuantity =
         data.operation === '+'

@@ -27,12 +27,12 @@ model User {
 }
 
 model EmailSettings {
-  id                 String   @id @unique @default(uuid())
-  elasticEmailApiKey String
-  userId             String   @unique
-  user               User     @relation(fields: [userId], references: [id])
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id               String   @id @unique @default(uuid())
+  brevoEmailApiKey String
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@map("email_settings")
 }

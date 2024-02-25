@@ -7,11 +7,27 @@ import { CreateEmailSettingsDTO, UpdateEmailSettingsDTO } from './dto';
 export class EmailService {
   constructor(private prisma: PrismaService, private common: CommonService) {}
 
+  async emailSettings(userId: string) {
+    try {
+      const email = await this.prisma.emailSettings.findUnique({
+        where: {
+          userId,
+        },
+        select: {
+          brevoEmailApiKey: true,
+        },
+      });
+      return { data: email, statusCode: 200, message: 'SUCCESS' };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Email');
+    }
+  }
+
   async addEmailSettings(userId: string, data: CreateEmailSettingsDTO) {
     try {
       await this.prisma.emailSettings.create({
         data: {
-          elasticEmailApiKey: data.elasticEmailApiKey,
+          brevoEmailApiKey: data.brevoEmailApiKey,
           userId,
         },
       });
@@ -27,7 +43,7 @@ export class EmailService {
           userId,
         },
         data: {
-          elasticEmailApiKey: data.elasticApiKey,
+          brevoEmailApiKey: data.brevoEmailApiKey,
         },
       });
     } catch (err) {
@@ -35,43 +51,7 @@ export class EmailService {
     }
   }
 
-  async emailSettings(userId: string) {
-    try {
-      const email = await this.prisma.emailSettings.findUnique({
-        where: {
-          userId,
-        },
-        select: {
-          elasticEmailApiKey: true,
-        },
-      });
-      return { data: email, statusCode: 200, message: 'SUCCESS' };
-    } catch (err) {
-      this.common.generateErrorResponse(err, 'Email Settings');
-    }
-  }
-
-  async emailTemplates(userId: string) {
-    try {
-      const { templatesApi } = await this.common.emailClient(userId);
-      const { data: templates } = await templatesApi.templatesGet(
-        ['Global', 'Personal'],
-        ['RawHTML'],
-        10,
-      );
-      return {
-        data: templates.map((template) => ({
-          name: template.Name,
-          createdAt: template.DateAdded,
-          subject: template.Subject,
-        })),
-        statusCode: '200',
-        message: 'SUCCESS',
-      };
-    } catch (err) {
-      this.common.generateErrorResponse(err, 'Email Templates');
-    }
-  }
+  async emailTemplates(userId: string) {}
 
   // async sendEmail(checkoutId: string) {
   //   const config = new Configuration({

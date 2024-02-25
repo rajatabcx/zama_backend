@@ -6,6 +6,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { IS_PUBLIC_KEY } from './public.guard';
+import { IS_AMP } from './amp.guard';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -18,9 +19,40 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       context.getHandler(),
       context.getClass(),
     ]);
+
+    const isAmp = this.reflector.getAllAndOverride<boolean>(IS_AMP, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (isAmp) {
+      const request = context.switchToHttp().getRequest();
+      const response = context.switchToHttp().getResponse();
+
+      const { __amp_source_origin } = request.query;
+
+      const origin = request.headers.origin;
+      const ampEmailSender = request.headers['amp-email-sender'];
+
+      if (ampEmailSender) {
+        response.header('AMP-Email-Allow-Sender', ampEmailSender);
+      } else if (!ampEmailSender) {
+        response.header('Access-Control-Allow-Origin', origin);
+        response.header(
+          'Access-Control-Expose-Headers',
+          'AMP-Access-Control-Allow-Source-Origin',
+        );
+        response.header(
+          'AMP-Access-Control-Allow-Source-Origin',
+          __amp_source_origin,
+        );
+      }
+    }
+
     if (isPublic) {
       return true;
     }
+
     return super.canActivate(context);
   }
 

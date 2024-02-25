@@ -29,6 +29,7 @@ import {
 import { UserId } from 'src/decorators';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { RemoveDiscountCodeDTO } from './dto/removeDiscountCode.dto';
+import { AMPEMAIL } from 'src/guards/amp.guard';
 
 @Controller('/shopify')
 export class ShopifyController {
@@ -130,18 +131,21 @@ export class ShopifyController {
   }
 
   @Public()
+  @AMPEMAIL()
   @Get('/bestseller-email/:checkoutId')
   bestSellerEmailData(@Param('checkoutId') checkoutId: string) {
     return this.shopifyService.bestSellerEmailData(checkoutId);
   }
 
   @Public()
+  @AMPEMAIL()
   @Get('/checkout-email/:checkoutId')
   checkoutEmailData(@Param('checkoutId') checkoutId: string) {
     return this.shopifyService.checkoutEmailData(checkoutId);
   }
 
   @Public()
+  @AMPEMAIL()
   @Post('/checkout-email/add-line-item')
   @UseInterceptors(FileInterceptor('file'))
   addLineItemToCheckout(
@@ -152,6 +156,7 @@ export class ShopifyController {
   }
 
   @Public()
+  @AMPEMAIL()
   @Post('/checkout-email/update-line-item')
   @UseInterceptors(FileInterceptor('file'))
   updateLineItemInCheckout(@Body() data: UpdateLineItemDTO) {
@@ -159,6 +164,7 @@ export class ShopifyController {
   }
 
   @Public()
+  @AMPEMAIL()
   @Post('/checkout-email/remove-line-item')
   @UseInterceptors(FileInterceptor('file'))
   removeLineItemFromCheckout(@Body() data: RemoveLineItemDTO) {
@@ -166,6 +172,7 @@ export class ShopifyController {
   }
 
   @Public()
+  @AMPEMAIL()
   @Post('/checkout-email/apply-discount')
   @UseInterceptors(FileInterceptor('file'))
   applyDiscountCode(@Body() data: ApplyDiscountCodeDTO) {
@@ -173,6 +180,7 @@ export class ShopifyController {
   }
 
   @Public()
+  @AMPEMAIL()
   @Post('/checkout-email/remove-discount')
   @UseInterceptors(FileInterceptor('file'))
   removeDiscountCode(@Body() data: RemoveDiscountCodeDTO) {
