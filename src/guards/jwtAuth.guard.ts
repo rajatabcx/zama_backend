@@ -36,7 +36,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
       if (ampEmailSender) {
         response.header('AMP-Email-Allow-Sender', ampEmailSender);
-      } else if (!ampEmailSender) {
+      } else if (!ampEmailSender && !!origin) {
         response.header('Access-Control-Allow-Origin', origin);
         response.header(
           'Access-Control-Expose-Headers',

@@ -10,16 +10,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UpsellStatus {
+  DRAFT
+  ONGOING
+  COMPLETED
+}
+
 model User {
-  id            String         @id @unique @default(uuid())
-  name          String?
-  email         String         @unique
-  password      String?
-  passwordToken String?
-  shopifyStore  ShopifyStore?
-  emailSetting  EmailSettings?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id             String          @id @unique @default(uuid())
+  name           String?
+  email          String          @unique
+  password       String?
+  passwordToken  String?
+  productUpsells ProductUpsell[]
+  shopifyStore   ShopifyStore?
+  emailSetting   EmailSettings?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   @@index([name])
   @@index([email])
@@ -27,12 +34,12 @@ model User {
 }
 
 model EmailSettings {
-  id               String   @id @unique @default(uuid())
-  brevoEmailApiKey String
-  userId           String   @unique
-  user             User     @relation(fields: [userId], references: [id])
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                 String   @id @unique @default(uuid())
+  elasticEmailApiKey String
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id])
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@map("email_settings")
 }
@@ -43,7 +50,6 @@ model ShopifyStore {
   accessToken           String     @unique
   storeFrontAccessToken String?    @unique
   scope                 String
-  givingDiscount        Boolean    @default(false) // remove this later
   selectedProductIds    Json[]
   discountId            BigInt?
   priceRuleId           BigInt?
@@ -70,9 +76,26 @@ model Checkout {
   emailSent                      Boolean      @default(false)
   orderFulFilled                 Boolean      @default(false)
   shopifyStoreId                 String
-  ShopifyStore                   ShopifyStore @relation(fields: [shopifyStoreId], references: [id])
+  shopifyStore                   ShopifyStore @relation(fields: [shopifyStoreId], references: [id])
   createdAt                      DateTime     @default(now())
   updatedAt                      DateTime     @updatedAt
 
   @@map("checkouts")
+}
+
+model ProductUpsell {
+  id           String       @id @unique @default(uuid())
+  name         String
+  productIds   String[]
+  discountId   String?
+  listName     String?
+  emailSent    Int?
+  emailNotSent Int?
+  status       UpsellStatus @default(DRAFT)
+  userId       String?
+  user         User?        @relation(fields: [userId], references: [id])
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@map("product_upsells")
 }

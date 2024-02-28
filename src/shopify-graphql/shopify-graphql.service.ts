@@ -305,4 +305,32 @@ export class ShopifyGraphqlService {
         `,
     );
   }
+
+  productRecommendations(
+    shopifyStoreFront: StorefrontApiClient,
+    productId: string,
+  ) {
+    return shopifyStoreFront.request(`query{
+      productRecommendations(productId: "${productId}",intent: RELATED) {
+          title
+          description
+          variants(first: 250){
+            edges {
+              node {
+                id
+                title
+                price{
+                  amount
+                  currencyCode
+                }
+                image {
+                  src
+                  altText
+                }
+              }
+            }
+          }
+      }
+    }`);
+  }
 }

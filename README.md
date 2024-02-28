@@ -1,43 +1,22 @@
 # ZAMA Backend
 
-change this model
-
-model Checkout {
-id String @id @unique @default(uuid())
-shopifyAdminCheckoutToken String @unique
-shopifyStorefrontCheckoutId String @unique
-shopifyStoreFrontCheckoutToken String @unique
-shopifyAbandonedCheckoutURL String @unique
-email String?
-emailSent Boolean @default(false)
-orderFulFilled Boolean @default(false)
-shopifyStoreId String
-ShopifyStore ShopifyStore @relation(fields: [shopifyStoreId], references: [id])
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
-
-@@map("checkouts")
-}
-
-to this model
-
-model Checkout {
-id String @id @unique @default(uuid())
-shopifyAdminCheckoutToken String @unique
-shopifyStorefrontCheckoutId String @unique
-shopifyStoreFrontCheckoutToken String @unique
-shopifyAbandonedCheckoutURL String @unique
-metadata Json
-shopifyStoreId String
-ShopifyStore ShopifyStore @relation(fields: [shopifyStoreId], references: [id])
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
-
-@@map("checkouts")
-}
-
-metadata type {email:string, checkoutEmailSent:string, orderFulfilled:string, reviewEmailSent:string, followupEmailSent:string}
-
-email not updating error fix
+sendDiscount Boolean @default(false)
 
 use amp selector
+
+product upsell email
+
+while creating from frontend,
+ask them to choose a product/variant
+ask then to choose a list or give the list name
+ask them if they want to add a discount
+
+Then, call the api
+
+api will receive the data - variantId, discount percentage and code
+
+will create a checkout with variantId for every user in the list and repeat that for every user and then send it
+
+create a discount with the data
+
+the email will have the links of checkout email data and recommendation for the product data.

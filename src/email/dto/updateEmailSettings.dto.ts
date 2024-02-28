@@ -4,5 +4,5 @@ export class UpdateEmailSettingsDTO {
   @IsString()
   @IsNotEmpty()
   @IsOptional()
-  brevoEmailApiKey: string;
+  elasticEmailApiKey: string;
 }

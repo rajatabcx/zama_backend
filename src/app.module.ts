@@ -11,7 +11,9 @@ import { ShopifyModule } from './shopify/shopify.module';
 import { UserModule } from './user/user.module';
 import { WebhookModule } from './webhook/webhook.module';
 import { EmailModule } from './email/email.module';
+import { CronService } from './app.cron.service';
 import { ShopifyGraphqlModule } from './shopify-graphql/shopify-graphql.module';
+import { AmpModule } from './amp/amp.module';
 
 @Module({
   imports: [
@@ -26,10 +28,12 @@ import { ShopifyGraphqlModule } from './shopify-graphql/shopify-graphql.module';
     WebhookModule,
     EmailModule,
     ShopifyGraphqlModule,
+    AmpModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
+    CronService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,

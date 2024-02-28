@@ -1,7 +1,7 @@
 import { IsNotEmpty, IsString } from 'class-validator';
 
-export class CreateEmailSettingsDTO {
+export class UpdateProductUpsellListDTO {
   @IsString()
   @IsNotEmpty()
-  elasticEmailApiKey: string;
+  listName: string;
 }

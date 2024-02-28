@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { CommonService } from 'src/common/common.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateEmailSettingsDTO, UpdateEmailSettingsDTO } from './dto';
+import {
+  EmailTransactionalMessageData,
+  EmailsApi,
+  TemplatesApi,
+} from '@elasticemail/elasticemail-client-ts-axios';
 
 @Injectable()
 export class EmailService {
@@ -14,7 +19,7 @@ export class EmailService {
           userId,
         },
         select: {
-          brevoEmailApiKey: true,
+          elasticEmailApiKey: true,
         },
       });
       return { data: email, statusCode: 200, message: 'SUCCESS' };
@@ -27,7 +32,7 @@ export class EmailService {
     try {
       await this.prisma.emailSettings.create({
         data: {
-          brevoEmailApiKey: data.brevoEmailApiKey,
+          elasticEmailApiKey: data.elasticEmailApiKey,
           userId,
         },
       });
@@ -43,7 +48,7 @@ export class EmailService {
           userId,
         },
         data: {
-          brevoEmailApiKey: data.brevoEmailApiKey,
+          elasticEmailApiKey: data.elasticEmailApiKey,
         },
       });
     } catch (err) {
@@ -51,38 +56,80 @@ export class EmailService {
     }
   }
 
-  async emailTemplates(userId: string) {}
+  async emailTemplates(userId: string) {
+    try {
+      const config = await this.common.emailConfig(userId);
+      const template = new TemplatesApi(config);
+      const { data: templates } = await template.templatesGet(
+        ['Global', 'Personal'],
+        ['DragDropEditor', 'LandingPageEditor', 'RawHTML'],
+        10,
+      );
+      const modifiedData = templates.map((template) => ({
+        createdAt: template.DateAdded,
+        name: template.Name,
+        subject: template.Subject,
+      }));
+      return { data: modifiedData, statusCode: 200, message: 'SUCCESS' };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Email Templates');
+    }
+  }
 
-  // async sendEmail(checkoutId: string) {
-  //   const config = new Configuration({
-  //     apiKey:
-  //       'E99EE013880471A1DF11467400C87C114FFA69F70BF0EF74FE014D4554E9748A14C9D43BA244D1C497621A6CA7A9D0E7',
-  //   });
+  async checkoutEmail(userId: string) {
+    try {
+      const config = await this.common.emailConfig(userId);
+      const emailsApi = new EmailsApi(config);
 
-  //   const emailsApi = new EmailsApi(config);
+      const emailMessageData: EmailTransactionalMessageData = {
+        Recipients: {
+          To: ['rajat.abcx@gmail.com'],
+        },
+        Content: {
+          From: 'info@zama.agency',
+          Subject: 'Please complete your checkout',
+          Body: [
+            {
+              ContentType: 'AMP',
+              Content: `<!--
+              Below is the mininum valid AMP4EMAIL document. Just type away
+              here and the AMP Validator will re-check your document on the fly.
+         -->
+         <!doctype html>
+         <html ⚡4email data-css-strict>
+         <head>
+           <meta charset="utf-8">
+           <script async src="https://cdn.ampproject.org/v0.js"></script>
+           <style amp4email-boilerplate>body{visibility:hidden}</style>
+         </head>
+         <body>
+           Hello, AMP4EMAIL world.
+         </body>
+         </html>`,
+            },
+            {
+              ContentType: 'HTML',
+              Content: 'This is the fallback content',
+            },
+          ],
+        },
+      };
 
-  //   const emailMessageData: EmailTransactionalMessageData = {
-  //     Recipients: {
-  //       // To: ['srijitasengupta23@gmail.com'],
-  //       To: ['rajat.abcx@gmail.com'],
-  //     },
-  //     Content: {
-  //       From: 'rajat.abcx@gmail.com',
-  //       Subject: 'Please complete your checkout',
-  //       TemplateName: 'Checkout',
-  //     },
-  //   };
+      const {
+        data: { TransactionID, MessageID },
+      } = await emailsApi.emailsTransactionalPost(emailMessageData);
 
-  //   const {
-  //     data: { TransactionID, MessageID },
-  //   } = await emailsApi.emailsTransactionalPost(emailMessageData);
-  //   return {
-  //     data: {
-  //       TransactionID,
-  //       MessageID,
-  //     },
-  //     message: 'SUCCESS',
-  //     statusCode: 200,
-  //   };
-  // }
+      return {
+        data: {
+          TransactionID,
+          MessageID,
+        },
+        message: 'SUCCESS',
+        statusCode: 200,
+      };
+    } catch (err) {
+      console.log(err?.response);
+      this.common.generateErrorResponse(err, 'Checkout email');
+    }
+  }
 }

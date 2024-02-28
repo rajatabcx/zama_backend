@@ -32,4 +32,9 @@ export class EmailController {
   emailTemplates(@UserId() userId: string) {
     return this.emailService.emailTemplates(userId);
   }
+
+  @Get('/send-checkout-email')
+  checkoutEmail(@UserId() userId: string) {
+    return this.emailService.checkoutEmail(userId);
+  }
 }

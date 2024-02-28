@@ -1,7 +1,21 @@
-import { Controller, Get, Body, Patch, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Body,
+  Patch,
+  Param,
+  DefaultValuePipe,
+  ParseIntPipe,
+  Query,
+  Post,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserId } from 'src/decorators';
-import { UpdateUserDTO } from './dto';
+import {
+  CreateProductUpsellDTO,
+  UpdateProductUpsellProductsDTO,
+  UpdateUserDTO,
+} from './dto';
 
 @Controller('/user')
 export class UserController {
@@ -23,5 +37,43 @@ export class UserController {
   @Get('/integrations')
   integrations(@UserId() userId: string) {
     return this.userService.integrations(userId);
+  }
+
+  @Get('/product-upsells')
+  productUpsells(
+    @UserId() userId: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    return this.userService.productUpsells(userId, page, limit);
+  }
+
+  @Post('/product-upsells')
+  createProductUpsells(
+    @UserId() userId: string,
+    @Body() data: CreateProductUpsellDTO,
+  ) {
+    return this.userService.createProductUpsells(userId, data);
+  }
+
+  @Patch('/product-upsells/:productUpsellId/products')
+  productUpsellsAddProducts(
+    @Param('productUpsellId') productUpsellId: string,
+    @Body() data: UpdateProductUpsellProductsDTO,
+  ) {
+    return this.userService.productUpsellsAddProducts(productUpsellId, data);
+  }
+
+  @Patch('/product-upsells/:productUpsellId/list')
+  productUpsellsAddListName(
+    @Param('productUpsellId') productUpsellId: string,
+    @Body() data: UpdateProductUpsellProductsDTO,
+  ) {
+    return this.userService.productUpsellsAddListName(productUpsellId, data);
+  }
+
+  @Patch('/product-upsells/:productUpsellId/list')
+  runProductUpsell(@Param('productUpsellId') productUpsellId: string) {
+    return this.userService.runProductUpsell(productUpsellId);
   }
 }

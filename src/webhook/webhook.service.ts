@@ -172,7 +172,7 @@ export class WebhookService {
         shopifyAdminCheckoutToken: data.token,
       },
       select: {
-        ShopifyStore: {
+        shopifyStore: {
           select: {
             storeFrontAccessToken: true,
             name: true,
@@ -238,7 +238,7 @@ export class WebhookService {
           shopifyStoreFrontCheckoutToken: storeFrontToken,
           shopifyAbandonedCheckoutURL: storefrontCheckoutData.webUrl,
           shopifyStorefrontCheckoutId: storefrontCheckoutData.id,
-          ShopifyStore: {
+          shopifyStore: {
             connect: {
               name: shopName,
             },
@@ -258,7 +258,30 @@ export class WebhookService {
 
   async shopifyCheckoutUpdated(data: any) {
     console.log('update');
-    // TODO: whenever checkout comes check for the user data and update them specifically email, then everything else
+    console.log(data);
+    //for address check if there is customer available then attach the checkout with customer or else update the shipping address with billing_address
+    // billing adress
+    // billing_address: {
+    //   first_name: 'Rajat',
+    //   address1: 'Durga Nagar North Dumdum',
+    //   phone: null,
+    //   city: 'Kolkata',
+    //   zip: '700065',
+    //   province: 'West Bengal',
+    //   country: 'India',
+    //   last_name: 'Mondal',
+    //   address2: null,
+    //   company: null,
+    //   latitude: null,
+    //   longitude: null,
+    //   name: 'Rajat Mondal',
+    //   country_code: 'IN',
+    //   province_code: 'WB'
+    // }
+    // customer
+    // customer:{
+    //   id: 6500316905583,
+    // }
 
     if (!data.email) {
       console.log('email not found ignoring');
@@ -285,8 +308,10 @@ export class WebhookService {
       return {};
     }
 
-    if (checkout.email) {
-      console.log('Email already exists ignoring it');
+    if (!!checkout.email && checkout.email === data.email) {
+      console.log(
+        'Email already exists and same as incoming email so ignoring it',
+      );
       return {};
     }
 
@@ -301,7 +326,8 @@ export class WebhookService {
         },
         select: {
           shopifyAdminCheckoutToken: true,
-          ShopifyStore: {
+          shopifyStorefrontCheckoutId: true,
+          shopifyStore: {
             select: {
               name: true,
               storeFrontAccessToken: true,
@@ -310,10 +336,10 @@ export class WebhookService {
         },
       });
       const shopifyStoreFront = this.common.shopifyStoreFrontObject(
-        checkoutDB.ShopifyStore.name,
-        checkoutDB.ShopifyStore.storeFrontAccessToken,
+        checkoutDB.shopifyStore.name,
+        checkoutDB.shopifyStore.storeFrontAccessToken,
       );
-      const checkoutId = btoa(checkoutDB.shopifyAdminCheckoutToken);
+      const checkoutId = btoa(checkoutDB.shopifyStorefrontCheckoutId);
       await this.shopifyGraphql.checkoutEmailUpdate(
         shopifyStoreFront,
         checkoutId,

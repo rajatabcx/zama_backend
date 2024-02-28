@@ -10,6 +10,7 @@ import * as Shopify from 'shopify-api-node';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SelectedProducts } from 'src/shopify/type';
 import { createStorefrontApiClient } from '@shopify/storefront-api-client';
+import { Configuration } from '@elasticemail/elasticemail-client-ts-axios';
 
 @Injectable()
 export class CommonService {
@@ -39,8 +40,12 @@ export class CommonService {
       err.response?.statusCode === 409
     ) {
       throw new ConflictException(`${entity} already exist`);
-    } else if (err.response?.status === 400 || err.response?.statusCode === 400)
+    } else if (
+      err.response?.status === 400 ||
+      err.response?.statusCode === 400
+    ) {
       throw new BadRequestException(err.message);
+    }
     throw new InternalServerErrorException(
       err.message || 'Something went wrong',
     );
@@ -79,12 +84,12 @@ export class CommonService {
         shopifyStore: {
           accessToken: string;
           name: string;
-          givingDiscount: boolean;
           selectedProductIds: SelectedProducts;
           discountId: number;
           priceRuleId: number;
           webhookRegistered: boolean;
           hourDelay: number;
+          storeFrontAccessToken: string;
         };
       }
     | { connected: false }
@@ -96,12 +101,12 @@ export class CommonService {
       select: {
         accessToken: true,
         name: true,
-        givingDiscount: true,
         discountId: true,
         priceRuleId: true,
         selectedProductIds: true,
         webhookRegistered: true,
         hourDelay: true,
+        storeFrontAccessToken: true,
       },
     });
     if (!shopifyStore) {
@@ -161,5 +166,34 @@ export class CommonService {
     return formatter;
   }
 
-  // async emailClient(userId: string) {}
+  async emailConfig(userId: string) {
+    const emailSetting = await this.prisma.emailSettings.findUnique({
+      where: {
+        userId,
+      },
+      select: {
+        elasticEmailApiKey: true,
+      },
+    });
+    if (!emailSetting) {
+      throw new BadRequestException(
+        'Please add elastic email api key to continue',
+      );
+    }
+    const config = new Configuration({
+      apiKey: emailSetting.elasticEmailApiKey,
+    });
+
+    return config;
+  }
+
+  calculatePaginationDetails(total: number, page: number, limit: number) {
+    const hasPrevPage = page !== 1;
+    const hasNextPage = page * limit < total;
+    const nextPage = hasNextPage ? page + 1 : null;
+    const prevPage = hasPrevPage ? page - 1 : null;
+    const totalPages = Math.floor(total / limit) + (total % limit ? 1 : 0);
+
+    return { hasNextPage, hasPrevPage, nextPage, prevPage, totalPages };
+  }
 }

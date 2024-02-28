@@ -28,6 +28,7 @@
     "@nestjs/jwt": "^10.2.0",
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^9.0.0",
+    "@nestjs/schedule": "^4.0.1",
     "@prisma/client": "^5.8.1",
     "@shopify/storefront-api-client": "^0.2.4",
     "argon2": "^0.31.2",

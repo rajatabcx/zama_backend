@@ -10,26 +10,17 @@ import {
   ParseIntPipe,
   Patch,
   Delete,
-  Param,
-  UseInterceptors,
 } from '@nestjs/common';
 import { ShopifyService } from './shopify.service';
 import { Request, Response } from 'express';
 import { Public } from 'src/guards';
 import {
-  AddLineItemDTO,
-  ApplyDiscountCodeDTO,
   DiscountPercentageDTO,
   InstallShopifyDTO,
   ProductDTO,
-  RemoveLineItemDTO,
   UpdateHourDelayDTO,
-  UpdateLineItemDTO,
 } from './dto';
 import { UserId } from 'src/decorators';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { RemoveDiscountCodeDTO } from './dto/removeDiscountCode.dto';
-import { AMPEMAIL } from 'src/guards/amp.guard';
 
 @Controller('/shopify')
 export class ShopifyController {
@@ -110,9 +101,13 @@ export class ShopifyController {
     return this.shopifyService.removeDiscount(userId);
   }
 
-  @Get('/checkout/all')
-  allCheckouts(@UserId() userId: string) {
-    return this.shopifyService.allCheckouts(userId);
+  @Get('/checkouts')
+  checkouts(
+    @UserId() userId: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    return this.shopifyService.checkouts(userId, page, limit);
   }
 
   @Get('/hour')
@@ -128,62 +123,5 @@ export class ShopifyController {
   @Get('/check-connection')
   checkConnection(@UserId() userId: string) {
     return this.shopifyService.checkConnection(userId);
-  }
-
-  @Public()
-  @AMPEMAIL()
-  @Get('/bestseller-email/:checkoutId')
-  bestSellerEmailData(@Param('checkoutId') checkoutId: string) {
-    return this.shopifyService.bestSellerEmailData(checkoutId);
-  }
-
-  @Public()
-  @AMPEMAIL()
-  @Get('/checkout-email/:checkoutId')
-  checkoutEmailData(@Param('checkoutId') checkoutId: string) {
-    return this.shopifyService.checkoutEmailData(checkoutId);
-  }
-
-  @Public()
-  @AMPEMAIL()
-  @Post('/checkout-email/add-line-item')
-  @UseInterceptors(FileInterceptor('file'))
-  addLineItemToCheckout(
-    @Body()
-    data: AddLineItemDTO,
-  ) {
-    return this.shopifyService.addLineItemToCheckout(data);
-  }
-
-  @Public()
-  @AMPEMAIL()
-  @Post('/checkout-email/update-line-item')
-  @UseInterceptors(FileInterceptor('file'))
-  updateLineItemInCheckout(@Body() data: UpdateLineItemDTO) {
-    return this.shopifyService.updateLineItemInCheckout(data);
-  }
-
-  @Public()
-  @AMPEMAIL()
-  @Post('/checkout-email/remove-line-item')
-  @UseInterceptors(FileInterceptor('file'))
-  removeLineItemFromCheckout(@Body() data: RemoveLineItemDTO) {
-    return this.shopifyService.removeLineItemFromCheckout(data);
-  }
-
-  @Public()
-  @AMPEMAIL()
-  @Post('/checkout-email/apply-discount')
-  @UseInterceptors(FileInterceptor('file'))
-  applyDiscountCode(@Body() data: ApplyDiscountCodeDTO) {
-    return this.shopifyService.applyDiscountCode(data);
-  }
-
-  @Public()
-  @AMPEMAIL()
-  @Post('/checkout-email/remove-discount')
-  @UseInterceptors(FileInterceptor('file'))
-  removeDiscountCode(@Body() data: RemoveDiscountCodeDTO) {
-    return this.shopifyService.removeDiscountCode(data);
   }
 }
