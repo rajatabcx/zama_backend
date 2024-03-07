@@ -230,7 +230,7 @@ export class ShopifyService {
           message: 'SUCCESS',
           statusCode: 200,
         };
-      const { shopify, shopifyStore } = shopifyObj;
+      const { shopifyStore } = shopifyObj;
 
       if (!shopifyStore.priceRuleId && !shopifyStore.discountId) {
         return {
@@ -240,13 +240,11 @@ export class ShopifyService {
         };
       }
 
-      const discount = await shopify.priceRule.get(shopifyStore.priceRuleId);
-
       return {
         data: {
           givingDiscount: true,
-          percentage: -Number(discount.value),
-          title: discount.title,
+          percentage: shopifyStore.discountPercentage,
+          title: shopifyStore.discountCode,
         },
         message: 'SUCCESS',
         statusCode: 200,
@@ -289,6 +287,8 @@ export class ShopifyService {
         data: {
           discountId: BigInt(discount.id),
           priceRuleId: BigInt(priceRule.id),
+          discountCode: 'ZAMA_SPECIAL',
+          discountPercentage: data.discountPercentage,
         },
       });
 
@@ -315,6 +315,14 @@ export class ShopifyService {
       const { shopify, shopifyStore } = shopifyObj;
       await shopify.priceRule.update(shopifyStore.priceRuleId, {
         value: `-${data.discountPercentage}`,
+      });
+      await this.prisma.shopifyStore.update({
+        where: {
+          userId,
+        },
+        data: {
+          discountPercentage: data.discountPercentage,
+        },
       });
       return { data: {}, message: 'SUCCESS', statusCode: 200 };
     } catch (err) {
@@ -347,6 +355,8 @@ export class ShopifyService {
         data: {
           discountId: null,
           priceRuleId: null,
+          discountCode: null,
+          discountPercentage: null,
         },
       });
     } catch (err) {

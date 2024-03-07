@@ -44,7 +44,7 @@ export class CommonService {
       err.response?.status === 400 ||
       err.response?.statusCode === 400
     ) {
-      throw new BadRequestException(err.message);
+      throw new BadRequestException(err?.response?.data?.Error || err.message);
     }
     throw new InternalServerErrorException(
       err.message || 'Something went wrong',
@@ -90,6 +90,8 @@ export class CommonService {
           webhookRegistered: boolean;
           hourDelay: number;
           storeFrontAccessToken: string;
+          discountPercentage: number;
+          discountCode: string;
         };
       }
     | { connected: false }
@@ -107,6 +109,8 @@ export class CommonService {
         webhookRegistered: true,
         hourDelay: true,
         storeFrontAccessToken: true,
+        discountPercentage: true,
+        discountCode: true,
       },
     });
     if (!shopifyStore) {
@@ -184,6 +188,13 @@ export class CommonService {
       apiKey: emailSetting.elasticEmailApiKey,
     });
 
+    return config;
+  }
+
+  publicEmailConfig() {
+    const config = new Configuration({
+      apiKey: this.config.get('ELASTIC_EMAIL_API_KEY'),
+    });
     return config;
   }
 

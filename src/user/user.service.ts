@@ -7,7 +7,8 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CommonService } from 'src/common/common.service';
 import { ShopName } from 'src/enum';
-import { UpsellStatus } from '@prisma/client';
+import { Prisma, UpsellStatus } from '@prisma/client';
+import { UpdateProductUpsellListDTO } from './dto/updateProductUpsellList.dto';
 
 @Injectable()
 export class UserService {
@@ -92,8 +93,11 @@ export class UserService {
         select: {
           id: true,
           listName: true,
-          productIds: true,
+          name: true,
+          emailNotSent: true,
+          emailSent: true,
           discountId: true,
+          status: true,
           createdAt: true,
         },
         take: limit,
@@ -154,12 +158,13 @@ export class UserService {
     data: UpdateProductUpsellProductsDTO,
   ) {
     try {
+      const updatedData = data.productIds as unknown as Prisma.InputJsonValue[];
       await this.prisma.productUpsell.update({
         where: {
           id: productUpsellId,
         },
         data: {
-          productIds: data.productsIds,
+          productIds: updatedData,
         },
       });
       return { data: {}, message: 'SUCCESS', statusCode: 200 };
@@ -170,7 +175,7 @@ export class UserService {
 
   async productUpsellsAddListName(
     productUpsellId: string,
-    data: UpdateProductUpsellProductsDTO,
+    data: UpdateProductUpsellListDTO,
   ) {
     try {
       await this.prisma.productUpsell.update({
@@ -178,7 +183,7 @@ export class UserService {
           id: productUpsellId,
         },
         data: {
-          productIds: data.productsIds,
+          listName: data.listName,
         },
       });
       return { data: {}, message: 'SUCCESS', statusCode: 200 };

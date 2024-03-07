@@ -258,7 +258,6 @@ export class WebhookService {
 
   async shopifyCheckoutUpdated(data: any) {
     console.log('update');
-    console.log(data);
     //for address check if there is customer available then attach the checkout with customer or else update the shipping address with billing_address
     // billing adress
     // billing_address: {

@@ -1,16 +1,28 @@
+import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
   IsNotEmpty,
-  IsString,
+  IsNumber,
+  ValidateNested,
 } from 'class-validator';
 
-export class UpdateProductUpsellProductsDTO {
-  @IsString({ each: true })
+class Product {
+  @IsNumber()
   @IsNotEmpty()
+  productId: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  variantId: number;
+}
+
+export class UpdateProductUpsellProductsDTO {
   @IsArray()
-  @ArrayMaxSize(2)
+  @ValidateNested({ each: true })
   @ArrayMinSize(2)
-  productsIds: string[];
+  @ArrayMaxSize(2)
+  @Type(() => Product)
+  productIds: Product[];
 }

@@ -1,16 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { CommonService } from 'src/common/common.service';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateEmailSettingsDTO, UpdateEmailSettingsDTO } from './dto';
 import {
-  EmailTransactionalMessageData,
-  EmailsApi,
-  TemplatesApi,
-} from '@elasticemail/elasticemail-client-ts-axios';
+  AddToNewsLetterDTO,
+  ContactSupportDTO,
+  CreateEmailSettingsDTO,
+  DemoEmailDTO,
+  UpdateEmailSettingsDTO,
+} from './dto';
+import { EmailTransactionalMessageData } from '@elasticemail/elasticemail-client-ts-axios';
+import { ConfigService } from '@nestjs/config';
+import { ElasticEmailService } from 'src/elastic-email/elastic-email.service';
+import { checkoutTemplate } from './data';
 
 @Injectable()
 export class EmailService {
-  constructor(private prisma: PrismaService, private common: CommonService) {}
+  constructor(
+    private prisma: PrismaService,
+    private common: CommonService,
+    private config: ConfigService,
+    private elasticEmail: ElasticEmailService,
+  ) {}
 
   async emailSettings(userId: string) {
     try {
@@ -20,6 +30,9 @@ export class EmailService {
         },
         select: {
           elasticEmailApiKey: true,
+          checkoutTemplateName: true,
+          productUpsellTemplateName: true,
+          fromEmail: true,
         },
       });
       return { data: email, statusCode: 200, message: 'SUCCESS' };
@@ -49,6 +62,9 @@ export class EmailService {
         },
         data: {
           elasticEmailApiKey: data.elasticEmailApiKey,
+          checkoutTemplateName: data.checkoutTemplateName,
+          productUpsellTemplateName: data.productUpsellTemplateName,
+          fromEmail: data.fromEmail,
         },
       });
     } catch (err) {
@@ -58,78 +74,203 @@ export class EmailService {
 
   async emailTemplates(userId: string) {
     try {
-      const config = await this.common.emailConfig(userId);
-      const template = new TemplatesApi(config);
-      const { data: templates } = await template.templatesGet(
-        ['Global', 'Personal'],
-        ['DragDropEditor', 'LandingPageEditor', 'RawHTML'],
-        10,
-      );
-      const modifiedData = templates.map((template) => ({
-        createdAt: template.DateAdded,
-        name: template.Name,
-        subject: template.Subject,
-      }));
-      return { data: modifiedData, statusCode: 200, message: 'SUCCESS' };
+      const data = await this.elasticEmail.templates(userId);
+
+      return { data, statusCode: 200, message: 'SUCCESS' };
     } catch (err) {
       this.common.generateErrorResponse(err, 'Email Templates');
     }
   }
 
-  async checkoutEmail(userId: string) {
+  async emailLists(userId: string) {
     try {
-      const config = await this.common.emailConfig(userId);
-      const emailsApi = new EmailsApi(config);
+      const data = await this.elasticEmail.lists(userId);
+      return { data, statusCode: 200, message: 'SUCCESS' };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Email Templates');
+    }
+  }
+
+  async checkoutEmail(userId: string, checkoutId: string) {
+    try {
+      const checkout = await this.prisma.checkout.findUnique({
+        where: {
+          id: checkoutId,
+        },
+        select: {
+          email: true,
+        },
+      });
 
       const emailMessageData: EmailTransactionalMessageData = {
+        Recipients: {
+          To: [checkout.email],
+        },
+        Content: {
+          From: 'Rajat Mondal <info@zama.agency>',
+          Subject: 'Please complete your checkout',
+          Merge: {
+            checkoutLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/checkout-email/${checkoutId}`,
+            bestSellerLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/bestseller-email/${checkoutId}`,
+            updateLineItemLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/checkout-email/update-line-item`,
+            addLineItemLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/checkout-email/add-line-item`,
+            removeLineItemLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/checkout-email/remove-line-item`,
+            applyDiscountLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/checkout-email/apply-discount`,
+            removeDiscountLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/checkout-email/remove-discount`,
+          },
+          Body: [
+            {
+              ContentType: 'AMP',
+              Content: checkoutTemplate,
+            },
+            {
+              ContentType: 'PlainText',
+              Content: 'This is fallback',
+            },
+          ],
+        },
+      };
+      await this.elasticEmail.sendTransactionalEmail(userId, emailMessageData);
+
+      // await this.prisma.checkout.update({
+      //   where: {
+      //     id: checkoutId,
+      //   },
+      //   data: {
+      //     emailSent: true,
+      //   },
+      // });
+
+      return {
+        data: {},
+        message: 'SUCCESS',
+        statusCode: 200,
+      };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Checkout email');
+    }
+  }
+
+  async addToNewsLetter(data: AddToNewsLetterDTO) {
+    try {
+      await this.elasticEmail.addUsersToList(
+        [{ Email: data.email, FirstName: data.name }],
+        ['Newsletter'],
+      );
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Newsletter');
+    }
+  }
+
+  async contactSupport(data: ContactSupportDTO) {
+    try {
+      const emailData: EmailTransactionalMessageData = {
         Recipients: {
           To: ['rajat.abcx@gmail.com'],
         },
         Content: {
-          From: 'info@zama.agency',
+          Subject: `${data.name} has some query for ZAMA - Reply Fast`,
+          From: 'Rajat Mondal <info@zama.agency>',
+          Body: [
+            {
+              ContentType: 'HTML',
+              Content: `
+                <h1>{name}</h1>
+                <p>{email}</p>
+                <p>{query}</p>
+              `,
+            },
+          ],
+          Merge: {
+            name: data.name,
+            email: data.email,
+            query: data.query,
+          },
+        },
+      };
+      await this.elasticEmail.sendTransactionalEmailFromMe(emailData);
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Contact');
+    }
+  }
+
+  async demoEmail(data: DemoEmailDTO) {
+    try {
+      await this.elasticEmail.addUsersToList(
+        [{ Email: data.email }],
+        ['Demo Email'],
+      );
+
+      const emailMessageData: EmailTransactionalMessageData = {
+        Recipients: {
+          To: [data.email],
+        },
+        Content: {
+          From: 'Rajat Mondal <info@zama.agency>',
           Subject: 'Please complete your checkout',
+          Merge: {
+            checkoutLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/checkout-email/${this.config.get(
+              'DEMO_CHECKOUT_ID',
+            )}`,
+            bestSellerLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/bestseller-email/${this.config.get(
+              'DEMO_CHECKOUT_ID',
+            )}`,
+            updateLineItemLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/checkout-email/update-line-item`,
+            addLineItemLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/checkout-email/add-line-item`,
+            removeLineItemLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/checkout-email/remove-line-item`,
+            applyDiscountLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/checkout-email/apply-discount`,
+            removeDiscountLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/checkout-email/remove-discount`,
+          },
           Body: [
             {
               ContentType: 'AMP',
-              Content: `<!--
-              Below is the mininum valid AMP4EMAIL document. Just type away
-              here and the AMP Validator will re-check your document on the fly.
-         -->
-         <!doctype html>
-         <html ⚡4email data-css-strict>
-         <head>
-           <meta charset="utf-8">
-           <script async src="https://cdn.ampproject.org/v0.js"></script>
-           <style amp4email-boilerplate>body{visibility:hidden}</style>
-         </head>
-         <body>
-           Hello, AMP4EMAIL world.
-         </body>
-         </html>`,
+              Content: checkoutTemplate,
             },
             {
-              ContentType: 'HTML',
-              Content: 'This is the fallback content',
+              ContentType: 'PlainText',
+              Content: 'This is fallback',
             },
           ],
         },
       };
 
-      const {
-        data: { TransactionID, MessageID },
-      } = await emailsApi.emailsTransactionalPost(emailMessageData);
+      await this.elasticEmail.sendTransactionalEmailFromMe(emailMessageData);
 
       return {
-        data: {
-          TransactionID,
-          MessageID,
-        },
+        data: {},
         message: 'SUCCESS',
         statusCode: 200,
       };
     } catch (err) {
-      console.log(err?.response);
-      this.common.generateErrorResponse(err, 'Checkout email');
+      this.common.generateErrorResponse(err, 'Contact');
     }
   }
 }

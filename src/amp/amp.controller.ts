@@ -29,15 +29,11 @@ export class AmpController {
     return this.ampService.bestSellerEmailData(checkoutId);
   }
 
-  @Public()
-  @AMPEMAIL()
   @Get('/shopify/checkout-email/:checkoutId')
   checkoutEmailData(@Param('checkoutId') checkoutId: string) {
     return this.ampService.checkoutEmailData(checkoutId);
   }
 
-  @Public()
-  @AMPEMAIL()
   @Post('/shopify/checkout-email/add-line-item')
   @UseInterceptors(FileInterceptor('file'))
   addLineItemToCheckout(
@@ -47,32 +43,24 @@ export class AmpController {
     return this.ampService.addLineItemToCheckout(data);
   }
 
-  @Public()
-  @AMPEMAIL()
   @Post('/shopify/checkout-email/update-line-item')
   @UseInterceptors(FileInterceptor('file'))
   updateLineItemInCheckout(@Body() data: UpdateLineItemDTO) {
     return this.ampService.updateLineItemInCheckout(data);
   }
 
-  @Public()
-  @AMPEMAIL()
   @Post('/shopify/checkout-email/remove-line-item')
   @UseInterceptors(FileInterceptor('file'))
   removeLineItemFromCheckout(@Body() data: RemoveLineItemDTO) {
     return this.ampService.removeLineItemFromCheckout(data);
   }
 
-  @Public()
-  @AMPEMAIL()
   @Post('/shopify/checkout-email/apply-discount')
   @UseInterceptors(FileInterceptor('file'))
   applyDiscountCode(@Body() data: ApplyDiscountCodeDTO) {
     return this.ampService.applyDiscountCode(data);
   }
 
-  @Public()
-  @AMPEMAIL()
   @Post('/shopify/checkout-email/remove-discount')
   @UseInterceptors(FileInterceptor('file'))
   removeDiscountCode(@Body() data: RemoveDiscountCodeDTO) {

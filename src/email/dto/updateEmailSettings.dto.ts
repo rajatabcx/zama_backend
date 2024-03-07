@@ -5,4 +5,19 @@ export class UpdateEmailSettingsDTO {
   @IsNotEmpty()
   @IsOptional()
   elasticEmailApiKey: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  checkoutTemplateName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  productUpsellTemplateName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  fromEmail: string;
 }

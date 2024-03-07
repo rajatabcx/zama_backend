@@ -34,12 +34,15 @@ model User {
 }
 
 model EmailSettings {
-  id                 String   @id @unique @default(uuid())
-  elasticEmailApiKey String
-  userId             String   @unique
-  user               User     @relation(fields: [userId], references: [id])
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                        String   @id @unique @default(uuid())
+  elasticEmailApiKey        String
+  checkoutTemplateName      String?
+  productUpsellTemplateName String?
+  fromEmail                 String?
+  userId                    String   @unique
+  user                      User     @relation(fields: [userId], references: [id])
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
 
   @@map("email_settings")
 }
@@ -53,7 +56,8 @@ model ShopifyStore {
   selectedProductIds    Json[]
   discountId            BigInt?
   priceRuleId           BigInt?
-  discountCode          String     @default("ZAMA_SPECIAL")
+  discountCode          String?
+  discountPercentage    Float?
   webhookRegistered     Boolean    @default(false)
   hourDelay             Int        @default(10)
   checkouts             Checkout[]
@@ -86,7 +90,7 @@ model Checkout {
 model ProductUpsell {
   id           String       @id @unique @default(uuid())
   name         String
-  productIds   String[]
+  productIds   Json[]
   discountId   String?
   listName     String?
   emailSent    Int?

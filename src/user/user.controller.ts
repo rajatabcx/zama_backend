@@ -16,6 +16,7 @@ import {
   UpdateProductUpsellProductsDTO,
   UpdateUserDTO,
 } from './dto';
+import { UpdateProductUpsellListDTO } from './dto/updateProductUpsellList.dto';
 
 @Controller('/user')
 export class UserController {
@@ -67,12 +68,12 @@ export class UserController {
   @Patch('/product-upsells/:productUpsellId/list')
   productUpsellsAddListName(
     @Param('productUpsellId') productUpsellId: string,
-    @Body() data: UpdateProductUpsellProductsDTO,
+    @Body() data: UpdateProductUpsellListDTO,
   ) {
     return this.userService.productUpsellsAddListName(productUpsellId, data);
   }
 
-  @Patch('/product-upsells/:productUpsellId/list')
+  @Patch('/product-upsells/:productUpsellId/run')
   runProductUpsell(@Param('productUpsellId') productUpsellId: string) {
     return this.userService.runProductUpsell(productUpsellId);
   }

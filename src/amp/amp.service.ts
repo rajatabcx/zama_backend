@@ -152,6 +152,8 @@ export class AmpService {
             accessToken: true,
             name: true,
             storeFrontAccessToken: true,
+            discountCode: true,
+            discountPercentage: true,
           },
         },
         orderFulFilled: true,
@@ -210,6 +212,7 @@ export class AmpService {
             ],
             productId: variant.product.id,
             variantId: variant.id,
+            variantTitle: variant.title,
             price: shopData.money_format.replace(
               '{{amount}}',
               (variant.price.amount * variant.quantity).toFixed(2),
@@ -220,8 +223,9 @@ export class AmpService {
                   (variant.compareAtPrice.amount * variant.quantity).toFixed(2),
                 )
               : null,
-            variants: variant.product.variants.edges.map((variant) => ({
-              id: variant.node.id,
+            variants: variant.product.variants.edges.map((variant, index) => ({
+              variantIndex: index,
+              vId: variant.node.id,
               title: variant.node.title,
             })),
           };
@@ -251,6 +255,11 @@ export class AmpService {
           '{{amount}}',
           checkoutDetails.totalPrice.amount,
         ),
+        showDiscountSection:
+          !!checkout.shopifyStore.discountCode &&
+          !!checkout.shopifyStore.discountPercentage,
+        checkoutDiscountCode: checkout.shopifyStore.discountCode,
+        checkoutDiscountPercentage: checkout.shopifyStore.discountPercentage,
       };
 
       return [{ ...modifiedCheckoutLineItemData }];
@@ -343,7 +352,6 @@ export class AmpService {
       const checkoutId = btoa(checkout.shopifyStorefrontCheckoutId);
       const variantId = btoa(data.variantId);
       const lineItemId = btoa(data.lineItemId);
-
       await this.shopifyGraphql.updateLineItemsInCheckout(
         shopifyStoreFront,
         checkoutId,

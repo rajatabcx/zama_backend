@@ -12,7 +12,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 
   app.setGlobalPrefix(`/api/${version}`);
-  // CORS setup
+
   app.enableCors({
     credentials: true,
     origin: [process.env.FRONTEND_URL, process.env.AMP_GMAIL_URL],
