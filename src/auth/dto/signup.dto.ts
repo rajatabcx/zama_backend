@@ -14,4 +14,6 @@ export class SignupDTO {
   @IsString()
   @MinLength(6)
   password: string;
+
+  acceptedTNC: boolean;
 }
