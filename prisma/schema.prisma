@@ -25,6 +25,7 @@ model User {
   productUpsells ProductUpsell[]
   shopifyStore   ShopifyStore?
   emailSetting   EmailSettings?
+  acceptedTNC    Boolean         @default(false)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 

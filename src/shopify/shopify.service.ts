@@ -6,6 +6,7 @@ import {
   DiscountPercentageDTO,
   InstallShopifyDTO,
   ProductDTO,
+  StorefrontAPIKeyDTO,
   UpdateHourDelayDTO,
 } from './dto';
 import { HttpService } from '@nestjs/axios';
@@ -456,7 +457,29 @@ export class ShopifyService {
     }
   }
 
-  async addStoreFrontApiKey(userId: string, data) {
+  async storefrontAPIKey(userId: string) {
+    try {
+      const shopifyObj = await this.common.shopifyObjectForShop(userId);
+
+      if (!shopifyObj.connected)
+        return {
+          data: { connected: false },
+          message: 'SUCCESS',
+          statusCode: 200,
+        };
+      return {
+        data: {
+          storeFrontAccessToken: shopifyObj.shopifyStore.storeFrontAccessToken,
+        },
+        message: 'SUCCESS',
+        statusCode: 200,
+      };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Storefront Access Token');
+    }
+  }
+
+  async updateStorefrontAPIKey(userId: string, data: StorefrontAPIKeyDTO) {
     try {
       const shopifyObj = await this.common.shopifyObjectForShop(userId);
 
@@ -483,27 +506,6 @@ export class ShopifyService {
       };
     } catch (err) {
       this.common.generateErrorResponse(err, 'Store front access token');
-    }
-  }
-
-  async updateStoreFrontApiKey(userId: string, data) {
-    try {
-      await this.prisma.shopifyStore.update({
-        where: {
-          userId,
-        },
-        data: {
-          storeFrontAccessToken: data.storeFrontAccessToken,
-        },
-      });
-
-      return {
-        data: {},
-        message: `Storefront access token updated Successfully`,
-        statusCode: 201,
-      };
-    } catch (err) {
-      this.common.generateErrorResponse(err, 'Storefront access token');
     }
   }
 

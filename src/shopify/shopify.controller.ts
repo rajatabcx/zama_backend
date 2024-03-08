@@ -18,6 +18,7 @@ import {
   DiscountPercentageDTO,
   InstallShopifyDTO,
   ProductDTO,
+  StorefrontAPIKeyDTO,
   UpdateHourDelayDTO,
 } from './dto';
 import { UserId } from 'src/decorators';
@@ -118,6 +119,19 @@ export class ShopifyController {
   @Patch('/update-hour')
   updateHour(@UserId() userId: string, @Body() data: UpdateHourDelayDTO) {
     return this.shopifyService.updateHour(userId, data);
+  }
+
+  @Get('/storefront-apikey')
+  storefrontAPIKey(@UserId() userId: string) {
+    return this.shopifyService.storefrontAPIKey(userId);
+  }
+
+  @Patch('/storefront-apikey')
+  updateStorefrontAPIKey(
+    @UserId() userId: string,
+    @Body() data: StorefrontAPIKeyDTO,
+  ) {
+    return this.shopifyService.updateStorefrontAPIKey(userId, data);
   }
 
   @Get('/check-connection')

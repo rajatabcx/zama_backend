@@ -42,6 +42,7 @@ export class AuthService {
           name: data.name,
           email: data.email,
           password: passwordHash,
+          acceptedTNC: data.acceptedTNC,
         },
         select: {
           id: true,
