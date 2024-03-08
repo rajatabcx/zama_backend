@@ -1,1 +1,1 @@
-export * from './checkoutTemplate';
+export * from './templates';

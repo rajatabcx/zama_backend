@@ -12,6 +12,9 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { ElasticEmailService } from 'src/elastic-email/elastic-email.service';
+import { EmailTransactionalMessageData } from '@elasticemail/elasticemail-client-ts-axios';
+import { shopifyIntegrationSuccessEmail } from 'src/email/data';
 
 @Injectable()
 export class ShopifyService {
@@ -20,6 +23,7 @@ export class ShopifyService {
     private common: CommonService,
     private http: HttpService,
     private prisma: PrismaService,
+    private elasticEmail: ElasticEmailService,
   ) {}
 
   async shopify(data: InstallShopifyDTO, req: Request, res: Response) {
@@ -76,14 +80,38 @@ export class ShopifyService {
       };
 
       const { data } = await this.shopifyAccessToken(shop, accessTokenData);
-      await this.prisma.shopifyStore.create({
+
+      const shopifyStore = await this.prisma.shopifyStore.create({
         data: {
           name: shop,
           accessToken: data.access_token,
           scope: data.scope,
           userId,
         },
+        select: {
+          user: {
+            select: {
+              email: true,
+            },
+          },
+        },
       });
+
+      const emailData: EmailTransactionalMessageData = {
+        Recipients: {
+          To: [shopifyStore.user.email],
+        },
+        Content: {
+          Subject: 'Successfully integrated shopify',
+          Body: [
+            {
+              ContentType: 'HTML',
+              Content: shopifyIntegrationSuccessEmail,
+            },
+          ],
+        },
+      };
+      await this.elasticEmail.sendTransactionalEmailFromMe(emailData);
 
       return { data: {}, message: 'SUCCESS', statusCode: 200 };
     } catch (err) {
@@ -390,6 +418,9 @@ export class ShopifyService {
         },
         take: limit,
         skip: (page - 1) * limit,
+        orderBy: {
+          createdAt: 'desc',
+        },
       });
       const totalPromise = this.prisma.checkout.count({
         where: {

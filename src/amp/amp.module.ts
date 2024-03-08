@@ -7,5 +7,6 @@ import { ShopifyGraphqlModule } from 'src/shopify-graphql/shopify-graphql.module
   controllers: [AmpController],
   providers: [AmpService],
   imports: [ShopifyGraphqlModule],
+  exports: [AmpService],
 })
 export class AmpModule {}

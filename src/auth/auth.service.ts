@@ -19,6 +19,9 @@ import {
 import * as argon2 from 'argon2';
 import { JwtPayload } from './types';
 import { Response } from 'express';
+import { ElasticEmailService } from 'src/elastic-email/elastic-email.service';
+import { EmailTransactionalMessageData } from '@elasticemail/elasticemail-client-ts-axios';
+import { forgotPasswordEmail, welcomeEmail } from 'src/email/data';
 
 @Injectable()
 export class AuthService {
@@ -27,13 +30,14 @@ export class AuthService {
     private common: CommonService,
     private config: ConfigService,
     private jwtService: JwtService,
+    private elasticService: ElasticEmailService,
   ) {}
 
   async signUp(data: SignupDTO) {
     try {
       const passwordHash = await this.common.hashData(data.password);
 
-      const user = await this.prisma.user.create({
+      const userPromise = this.prisma.user.create({
         data: {
           name: data.name,
           email: data.email,
@@ -46,10 +50,38 @@ export class AuthService {
         },
       });
 
+      const addUserToListPromise = this.elasticService.addUsersToList(
+        [{ Email: data.email, FirstName: data.name }],
+        ['Zama Users'],
+      );
+
+      const emailData: EmailTransactionalMessageData = {
+        Recipients: {
+          To: [data.email],
+        },
+        Content: {
+          Subject: 'Welcome to ZAMA!!',
+          Body: [
+            {
+              ContentType: 'HTML',
+              Content: welcomeEmail,
+            },
+          ],
+          Merge: {
+            name: data.name,
+          },
+        },
+      };
+
+      const emailPromise =
+        this.elasticService.sendTransactionalEmailFromMe(emailData);
+
+      await Promise.all([userPromise, addUserToListPromise, emailPromise]);
+
       return {
         message: 'New user created successfully',
         statusCode: 201,
-        data: user,
+        data: {},
       };
     } catch (err) {
       this.common.generateErrorResponse(err, 'User');
@@ -173,26 +205,30 @@ export class AuthService {
   }
 
   async forgotPassword(data: ForgotPasswordDTO) {
-    const user = await this.prisma.user.findFirst({
-      where: {
-        email: data.email,
-      },
-      select: {
-        passwordToken: true,
-        id: true,
-        name: true,
-        email: true,
-      },
-    });
-
-    if (!user) throw new ForbiddenException('User not found');
-
-    if (user.passwordToken) throw new BadRequestException('Emil already sent');
-
     const token = this.common.customToken();
 
+    const emailData: EmailTransactionalMessageData = {
+      Recipients: {
+        To: [data.email],
+      },
+      Content: {
+        Subject: 'Reset password link for ZAMA',
+        Body: [
+          {
+            ContentType: 'HTML',
+            Content: forgotPasswordEmail,
+          },
+        ],
+        Merge: {
+          resetPasswordLink: `${this.config.get(
+            'FRONTEND_URL',
+          )}/auth/reset-password?token=${encodeURIComponent(token)}`,
+        },
+      },
+    };
+
     try {
-      await this.prisma.user.update({
+      const userUpdatePromise = this.prisma.user.update({
         where: { email: data.email },
         data: {
           passwordToken: token,
@@ -201,6 +237,11 @@ export class AuthService {
           passwordToken: true,
         },
       });
+      const emailPromise =
+        this.elasticService.sendTransactionalEmailFromMe(emailData);
+
+      await Promise.all([userUpdatePromise, emailPromise]);
+
       return {
         data: {},
         message: 'Email sent successfully',

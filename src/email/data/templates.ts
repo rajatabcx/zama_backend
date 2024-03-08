@@ -521,7 +521,7 @@ export const checkoutTemplate = `
 
                 <div hidden [hidden]="!zamaState.revealDiscount" class="discount">
                     <amp-list layout="fixed-height" height="250" binding="always"
-                        src="https://0120-103-249-6-227.ngrok-free.app/api/v1/amp/shopify/checkout-email/19dc4c81-f215-4fbb-9775-acabc23857c1"
+                        src="{checkoutLink}"
                         items=".">
                         <template type="amp-mustache">
                             <div [hidden]="{{showDiscountSection}}"
@@ -570,7 +570,7 @@ export const checkoutTemplate = `
                     <div>
                         <amp-list id="checkout" class="ampListCheckout" layout="fixed-height" height="450"
                             binding="always"
-                            src="https://0120-103-249-6-227.ngrok-free.app/api/v1/amp/shopify/checkout-email/19dc4c81-f215-4fbb-9775-acabc23857c1"
+                            src="{checkoutLink}"
                             items=".">
                             <template type="amp-mustache">
                                 {{#items}}
@@ -817,7 +817,7 @@ export const checkoutTemplate = `
                     </div>
                     <amp-list id="checkoutActions" class="ampListCheckoutActions" layout="fixed-height" height="100"
                         binding="always"
-                        src="https://0120-103-249-6-227.ngrok-free.app/api/v1/amp/shopify/checkout-email/19dc4c81-f215-4fbb-9775-acabc23857c1"
+                        src="{checkoutLink}"
                         items=".">
                         <template type="amp-mustache">
                             <div
@@ -836,7 +836,7 @@ export const checkoutTemplate = `
                     </div>
                     <div class="ampListBetSellerContainer">
                         <amp-list class="ampListBestSeller" layout="fixed-height" height="400" binding="always"
-                            src="https://0120-103-249-6-227.ngrok-free.app/api/v1/amp/shopify/bestseller-email/19dc4c81-f215-4fbb-9775-acabc23857c1">
+                            src="{bestSellerLink}">
 
                             <template type="amp-mustache">
                                 <div class="product">
@@ -938,6 +938,362 @@ export const checkoutTemplate = `
             </div>
 
         </div>
+    </div>
+</body>
+
+</html>
+`;
+
+export const checkoutFallbackTemplate = `
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .outerContainer {
+            display: flex;
+            justify-content: center;
+            background-color: #F5F5F5;
+            padding: 16px;
+        }
+
+        .container {
+            border-radius: 6px;
+            min-width: 400px;
+            max-width: 600px;
+            flex-grow: 1;
+            background-color: #fff;
+            margin:auto;
+        }
+
+        .btn {
+            height: 40px;
+            padding: 8px 16px;
+            border: 2px solid #000;
+            font-weight: 500;
+            background: transparent;
+            cursor: pointer;
+            position: relative;
+            gap: 6px;
+            border-radius: 6px;
+            font-weight: 600;
+            display: block;
+            text-decoration: none;
+            color: #000!important;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background-color: #00000015;
+        }
+
+        p {
+            font-size: 14px;
+        }
+        .product{
+            display: flex;
+            gap: 16px;
+            margin:16px auto;
+        }
+        .productDetails{
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 8px;
+            margin-left:16px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="outerContainer">
+        <div class="container">
+            <div style="padding:16px;">
+                <div>
+                    <h1 style="margin-bottom: 16px;">zama-merchant</h1>
+                    <p style="margin-bottom: 8px;">You left items in your cart...</p>
+                    <p style="margin-bottom: 8px;">Hi, you added items to your shopping cart and haven't completed your
+                        purchase. You can complete
+                        it
+                        now
+                        while they're still available.</p>
+                    <p style="margin-bottom: 8px;">This is an example fallback template, even if your customers, don't
+                        have dynamic email enabled,
+                        they
+                        will
+                        be able to see the items and go to checkout from here</p>
+                    <p style="margin-bottom: 16px;">To enable dynamic email go to settings > all settings > enable
+                        dynamic email</p>
+                    <a href="{abandonedCheckoutURL}" class="btn" style="width: 100%;justify-content: center;margin-bottom: 24px;">Go To
+                        Checkout</a>
+                </div>
+                <div>
+                        {{products}}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+
+</html>
+`;
+
+export const welcomeEmail = `
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .outerContainer {
+            display: flex;
+            justify-content: center;
+            background-color: #F5F5F5;
+            padding: 16px;
+        }
+
+        .container {
+            border-radius: 6px;
+            min-width: 400px;
+            max-width: 600px;
+            flex-grow: 1;
+            background-color: #fff;
+            margin:auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="outerContainer">
+        <div class="container">
+            <div style="padding:16px;">
+                <div>
+                    <h1 style="margin-bottom: 16px;">Hi {name}</h1>
+                    <p style="margin-bottom: 8px;">Welcome to zama, start increasing your conversion rates, connect your shopify store from <a href="https://zama.agency/integrations">here</a></p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+
+</html>
+    
+`;
+
+export const forgotPasswordEmail = `
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .outerContainer {
+            display: flex;
+            justify-content: center;
+            background-color: #F5F5F5;
+            padding: 16px;
+        }
+
+        .container {
+            border-radius: 6px;
+            min-width: 400px;
+            max-width: 600px;
+            flex-grow: 1;
+            background-color: #fff;
+            margin:auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="outerContainer">
+        <div class="container">
+            <div style="padding:16px;">
+                <div>
+                    <h1 style="margin-bottom: 16px;">Hi {firstName}</h1>
+                    <p style="margin-bottom: 8px;">You can reset you password from <a href="{resetPasswordLink}">here</a></p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+
+</html>
+`;
+
+export const shopifyIntegrationSuccessEmail = `
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .outerContainer {
+            display: flex;
+            justify-content: center;
+            background-color: #F5F5F5;
+            padding: 16px;
+        }
+
+        .container {
+            border-radius: 6px;
+            min-width: 400px;
+            max-width: 600px;
+            flex-grow: 1;
+            background-color: #fff;
+            margin:auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="outerContainer">
+        <div class="container">
+            <div style="padding:16px;">
+                <div>
+                    <h1 style="margin-bottom: 16px;">Hi {firstName}</h1>
+                    <p style="margin-bottom: 8px;">You have successfully integrated shopify, for the next steps, go <a href="https://zama.agency/settings?index=1">here</a></p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+
+</html>
+`;
+
+export const emailIntegrationSuccessEmail = `
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .outerContainer {
+            display: flex;
+            justify-content: center;
+            background-color: #F5F5F5;
+            padding: 16px;
+        }
+
+        .container {
+            border-radius: 6px;
+            min-width: 400px;
+            max-width: 600px;
+            flex-grow: 1;
+            background-color: #fff;
+            margin:auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="outerContainer">
+        <div class="container">
+            <div style="padding:16px;">
+                <div>
+                    <h1 style="margin-bottom: 16px;">Hi {firstName}</h1>
+                    <p style="margin-bottom: 8px;">You have successfully integrated elastic email, for the next steps, go <a href="https://zama.agency/settings?index=2">here</a></p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+
+</html>
+`;
+
+export const contactSupportEmail = `
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .outerContainer {
+            display: flex;
+            justify-content: center;
+            background-color: #F5F5F5;
+            padding: 16px;
+        }
+
+        .container {
+            border-radius: 6px;
+            min-width: 400px;
+            max-width: 600px;
+            flex-grow: 1;
+            background-color: #fff;
+            margin:auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="outerContainer">
+        <div class="container">
+            <div style="padding:16px;">
+                <div>
+                    <h1 style="margin-bottom: 16px;">Hi {name}</h1>
+                    <p style="margin-bottom: 8px;">{email}</p>
+                    <p style="margin-bottom: 8px;">{query}</p>
+                </div>
+            </div>
+        </div>
+
     </div>
 </body>
 

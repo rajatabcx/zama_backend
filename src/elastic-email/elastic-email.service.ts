@@ -30,7 +30,7 @@ export class ElasticEmailService {
   }
 
   async addUsersToList(users: ContactPayload[], lists: string[]) {
-    const config = this.common.publicEmailConfig();
+    const config = this.common.myEmailConfig();
     const contacts = new ContactsApi(config);
     await contacts.contactsPost(users, lists);
   }
@@ -45,7 +45,8 @@ export class ElasticEmailService {
   }
 
   async sendTransactionalEmailFromMe(data: EmailTransactionalMessageData) {
-    const config = this.common.publicEmailConfig();
+    data.Content.From = 'Rajat Mondal <info@zama.agency>';
+    const config = this.common.myEmailConfig();
     const emailsApi = new EmailsApi(config);
     await emailsApi.emailsTransactionalPost(data);
   }

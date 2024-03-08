@@ -11,7 +11,13 @@ import {
 import { EmailTransactionalMessageData } from '@elasticemail/elasticemail-client-ts-axios';
 import { ConfigService } from '@nestjs/config';
 import { ElasticEmailService } from 'src/elastic-email/elastic-email.service';
-import { checkoutTemplate } from './data';
+import {
+  checkoutFallbackTemplate,
+  checkoutTemplate,
+  contactSupportEmail,
+  emailIntegrationSuccessEmail,
+} from './data';
+import { AmpService } from 'src/amp/amp.service';
 
 @Injectable()
 export class EmailService {
@@ -20,6 +26,7 @@ export class EmailService {
     private common: CommonService,
     private config: ConfigService,
     private elasticEmail: ElasticEmailService,
+    private amp: AmpService,
   ) {}
 
   async emailSettings(userId: string) {
@@ -43,12 +50,35 @@ export class EmailService {
 
   async addEmailSettings(userId: string, data: CreateEmailSettingsDTO) {
     try {
-      await this.prisma.emailSettings.create({
+      const emailSettings = await this.prisma.emailSettings.create({
         data: {
           elasticEmailApiKey: data.elasticEmailApiKey,
           userId,
         },
+        select: {
+          user: {
+            select: {
+              email: true,
+            },
+          },
+        },
       });
+
+      const emailData: EmailTransactionalMessageData = {
+        Recipients: {
+          To: [emailSettings.user.email],
+        },
+        Content: {
+          Subject: 'Successfully integrated Elastic Email',
+          Body: [
+            {
+              ContentType: 'HTML',
+              Content: emailIntegrationSuccessEmail,
+            },
+          ],
+        },
+      };
+      await this.elasticEmail.sendTransactionalEmailFromMe(emailData);
     } catch (err) {
       this.common.generateErrorResponse(err, 'Email Settings');
     }
@@ -99,8 +129,26 @@ export class EmailService {
         },
         select: {
           email: true,
+          shopifyStorefrontCheckoutId: true,
         },
       });
+
+      const checkoutDetails = await this.amp.checkoutEmailData(checkoutId);
+
+      const productsHTML: string[] = checkoutDetails[0].items.map(
+        (lineItem) => {
+          const html = `
+        <div class="product">
+                        <div><img src="${lineItem.images[0].src}" height="60" width="60"></div>
+                        <div class="productDetails">
+                            <div style="margin:auto">${lineItem.title} &nbsp;&nbsp; x&nbsp;&nbsp; ${lineItem.quantity}</div>
+                            <div style="margin:auto;margin-left:24px">${lineItem.price}</div>
+                        </div>
+                    </div>
+                    `;
+          return html;
+        },
+      );
 
       const emailMessageData: EmailTransactionalMessageData = {
         Recipients: {
@@ -131,6 +179,7 @@ export class EmailService {
             removeDiscountLink: `${this.config.get(
               'BACKEND_URL',
             )}/amp/shopify/checkout-email/remove-discount`,
+            abandonedCheckoutURL: checkoutDetails[0].checkoutUrl,
           },
           Body: [
             {
@@ -138,22 +187,25 @@ export class EmailService {
               Content: checkoutTemplate,
             },
             {
-              ContentType: 'PlainText',
-              Content: 'This is fallback',
+              ContentType: 'HTML',
+              Content: checkoutFallbackTemplate.replace(
+                '{{products}}',
+                productsHTML.join('\n'),
+              ),
             },
           ],
         },
       };
       await this.elasticEmail.sendTransactionalEmail(userId, emailMessageData);
 
-      // await this.prisma.checkout.update({
-      //   where: {
-      //     id: checkoutId,
-      //   },
-      //   data: {
-      //     emailSent: true,
-      //   },
-      // });
+      await this.prisma.checkout.update({
+        where: {
+          id: checkoutId,
+        },
+        data: {
+          emailSent: true,
+        },
+      });
 
       return {
         data: {},
@@ -180,19 +232,14 @@ export class EmailService {
     try {
       const emailData: EmailTransactionalMessageData = {
         Recipients: {
-          To: ['rajat.abcx@gmail.com'],
+          To: ['rajat.abcx@gmail.com', 'rajat@zama.agency'],
         },
         Content: {
           Subject: `${data.name} has some query for ZAMA - Reply Fast`,
-          From: 'Rajat Mondal <info@zama.agency>',
           Body: [
             {
               ContentType: 'HTML',
-              Content: `
-                <h1>{name}</h1>
-                <p>{email}</p>
-                <p>{query}</p>
-              `,
+              Content: contactSupportEmail,
             },
           ],
           Merge: {
@@ -210,8 +257,26 @@ export class EmailService {
 
   async demoEmail(data: DemoEmailDTO) {
     try {
+      const checkoutId = this.config.get('DEMO_CHECKOUT_ID');
+      const checkoutDetails = await this.amp.checkoutEmailData(checkoutId);
+
+      const productsHTML: string[] = checkoutDetails[0].items.map(
+        (lineItem) => {
+          const html = `
+        <div class="product">
+                        <div><img src="${lineItem.images[0].src}" height="60" width="60"></div>
+                        <div class="productDetails">
+                            <div style="margin:auto">${lineItem.title} &nbsp;&nbsp; x&nbsp;&nbsp; ${lineItem.quantity}</div>
+                            <div style="margin:auto;margin-left:24px">${lineItem.price}</div>
+                        </div>
+                    </div>
+                    `;
+          return html;
+        },
+      );
+
       await this.elasticEmail.addUsersToList(
-        [{ Email: data.email }],
+        [{ Email: data.email, FirstName: 'Anonymous User' }],
         ['Demo Email'],
       );
 
@@ -220,19 +285,14 @@ export class EmailService {
           To: [data.email],
         },
         Content: {
-          From: 'Rajat Mondal <info@zama.agency>',
           Subject: 'Please complete your checkout',
           Merge: {
             checkoutLink: `${this.config.get(
               'BACKEND_URL',
-            )}/amp/shopify/checkout-email/${this.config.get(
-              'DEMO_CHECKOUT_ID',
-            )}`,
+            )}/amp/shopify/checkout-email/${checkoutId}}`,
             bestSellerLink: `${this.config.get(
               'BACKEND_URL',
-            )}/amp/shopify/bestseller-email/${this.config.get(
-              'DEMO_CHECKOUT_ID',
-            )}`,
+            )}/amp/shopify/bestseller-email/${checkoutId}}`,
             updateLineItemLink: `${this.config.get(
               'BACKEND_URL',
             )}/amp/shopify/checkout-email/update-line-item`,
@@ -248,6 +308,7 @@ export class EmailService {
             removeDiscountLink: `${this.config.get(
               'BACKEND_URL',
             )}/amp/shopify/checkout-email/remove-discount`,
+            abandonedCheckoutURL: checkoutDetails[0].checkoutUrl,
           },
           Body: [
             {
@@ -255,8 +316,11 @@ export class EmailService {
               Content: checkoutTemplate,
             },
             {
-              ContentType: 'PlainText',
-              Content: 'This is fallback',
+              ContentType: 'HTML',
+              Content: checkoutFallbackTemplate.replace(
+                '{{products}}',
+                productsHTML.join('\n'),
+              ),
             },
           ],
         },

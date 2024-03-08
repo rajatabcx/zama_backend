@@ -191,7 +191,7 @@ export class CommonService {
     return config;
   }
 
-  publicEmailConfig() {
+  myEmailConfig() {
     const config = new Configuration({
       apiKey: this.config.get('ELASTIC_EMAIL_API_KEY'),
     });
