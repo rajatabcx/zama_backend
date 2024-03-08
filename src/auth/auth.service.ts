@@ -212,7 +212,7 @@ export class AuthService {
         To: [data.email],
       },
       Content: {
-        Subject: 'Reset password link for ZAMA',
+        Subject: 'Reset password link for ZAMA!!',
         Body: [
           {
             ContentType: 'HTML',

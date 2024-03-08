@@ -102,7 +102,7 @@ export class ShopifyService {
           To: [shopifyStore.user.email],
         },
         Content: {
-          Subject: 'Successfully integrated shopify',
+          Subject: 'Successfully integrated shopify into Zama!!',
           Body: [
             {
               ContentType: 'HTML',
