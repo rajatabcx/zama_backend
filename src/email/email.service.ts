@@ -155,7 +155,6 @@ export class EmailService {
           To: [checkout.email],
         },
         Content: {
-          From: 'Rajat Mondal <info@zama.agency>',
           Subject: 'Please complete your checkout',
           Merge: {
             checkoutLink: `${this.config.get(

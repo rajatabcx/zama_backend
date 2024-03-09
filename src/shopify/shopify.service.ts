@@ -448,6 +448,7 @@ export class ShopifyService {
           nextPage,
           prevPage,
           totalPages,
+          connected: true,
         },
         statusCode: 200,
         message: 'SUCCESS',

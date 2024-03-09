@@ -14,7 +14,7 @@ export class ElasticEmailService {
   constructor(private common: CommonService) {}
 
   async templates(userId: string) {
-    const config = await this.common.emailConfig(userId);
+    const { config } = await this.common.emailConfig(userId);
     const template = new TemplatesApi(config);
     const { data: templates } = await template.templatesGet(
       ['Global', 'Personal'],
@@ -39,7 +39,8 @@ export class ElasticEmailService {
     userId: string,
     data: EmailTransactionalMessageData,
   ) {
-    const config = await this.common.emailConfig(userId);
+    const { config, fromEmail } = await this.common.emailConfig(userId);
+    data.Content.From = fromEmail;
     const emailsApi = new EmailsApi(config);
     await emailsApi.emailsTransactionalPost(data);
   }
@@ -52,7 +53,7 @@ export class ElasticEmailService {
   }
 
   async lists(userId: string) {
-    const config = await this.common.emailConfig(userId);
+    const { config } = await this.common.emailConfig(userId);
     const listsApi = new ListsApi(config);
     const { data: lists } = await listsApi.listsGet(20);
     const modifiedData = lists.map((list) => ({

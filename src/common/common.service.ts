@@ -177,6 +177,7 @@ export class CommonService {
       },
       select: {
         elasticEmailApiKey: true,
+        fromEmail: true,
       },
     });
     if (!emailSetting) {
@@ -188,10 +189,12 @@ export class CommonService {
       apiKey: emailSetting.elasticEmailApiKey,
     });
 
-    return config;
+    return { config, fromEmail: emailSetting.fromEmail };
   }
 
   myEmailConfig() {
+    console.log('my elastic email api key ');
+    console.log(this.config.get('ELASTIC_EMAIL_API_KEY'));
     const config = new Configuration({
       apiKey: this.config.get('ELASTIC_EMAIL_API_KEY'),
     });
