@@ -193,8 +193,6 @@ export class CommonService {
   }
 
   myEmailConfig() {
-    console.log('my elastic email api key ');
-    console.log(this.config.get('ELASTIC_EMAIL_API_KEY'));
     const config = new Configuration({
       apiKey: this.config.get('ELASTIC_EMAIL_API_KEY'),
     });
