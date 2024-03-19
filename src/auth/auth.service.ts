@@ -208,40 +208,40 @@ export class AuthService {
   async forgotPassword(data: ForgotPasswordDTO) {
     const token = this.common.customToken();
 
-    const emailData: EmailTransactionalMessageData = {
-      Recipients: {
-        To: [data.email],
-      },
-      Content: {
-        Subject: 'Reset password link for ZAMA!!',
-        Body: [
-          {
-            ContentType: 'HTML',
-            Content: forgotPasswordEmail,
-          },
-        ],
-        Merge: {
-          resetPasswordLink: `${this.config.get(
-            'FRONTEND_URL',
-          )}/auth/reset-password?token=${encodeURIComponent(token)}`,
-        },
-      },
-    };
-
     try {
-      const userUpdatePromise = this.prisma.user.update({
+      const user = await this.prisma.user.update({
         where: { email: data.email },
         data: {
           passwordToken: token,
         },
         select: {
           passwordToken: true,
+          name: true,
         },
       });
-      const emailPromise =
-        this.elasticService.sendTransactionalEmailFromMe(emailData);
 
-      await Promise.all([userUpdatePromise, emailPromise]);
+      const emailData: EmailTransactionalMessageData = {
+        Recipients: {
+          To: [data.email],
+        },
+        Content: {
+          Subject: 'Reset password link for ZAMA!!',
+          Body: [
+            {
+              ContentType: 'HTML',
+              Content: forgotPasswordEmail,
+            },
+          ],
+          Merge: {
+            resetPasswordLink: `${this.config.get(
+              'FRONTEND_URL',
+            )}/auth/reset-password?token=${encodeURIComponent(token)}`,
+            name: user.name,
+          },
+        },
+      };
+
+      await this.elasticService.sendTransactionalEmailFromMe(emailData);
 
       return {
         data: {},

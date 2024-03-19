@@ -222,7 +222,7 @@ export class WebhookService {
       );
 
       const storefrontCheckoutData = {
-        id: resData.checkoutCreate.checkout.id,
+        id: btoa(resData.checkoutCreate.checkout.id),
         webUrl: resData.checkoutCreate.checkout.webUrl,
       };
 
@@ -338,10 +338,10 @@ export class WebhookService {
         checkoutDB.shopifyStore.name,
         checkoutDB.shopifyStore.storeFrontAccessToken,
       );
-      const checkoutId = btoa(checkoutDB.shopifyStorefrontCheckoutId);
+
       await this.shopifyGraphql.checkoutEmailUpdate(
         shopifyStoreFront,
-        checkoutId,
+        checkoutDB.shopifyStorefrontCheckoutId,
         data.email,
       );
     } catch (err) {

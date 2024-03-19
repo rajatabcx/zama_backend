@@ -29,6 +29,18 @@ export class AmpController {
     return this.ampService.bestSellerEmailData(checkoutId);
   }
 
+  // @Get('/shopify/product-upsell-email/:productUpsellId')
+  // productUpsellEmailData(@Param('productUpsellId') productUpsellId: string) {
+  //   return this.ampService.productUpsellEmailData(productUpsellId);
+  // }
+
+  @Get('/shopify/recommendation-email/:productUpsellId')
+  productRecommendationEmailData(
+    @Param('productUpsellId') productUpsellId: string,
+  ) {
+    return this.ampService.productRecommendationEmailData(productUpsellId);
+  }
+
   @Get('/shopify/checkout-email/:checkoutId')
   checkoutEmailData(@Param('checkoutId') checkoutId: string) {
     return this.ampService.checkoutEmailData(checkoutId);

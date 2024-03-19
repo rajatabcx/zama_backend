@@ -1048,6 +1048,9 @@ export const checkoutFallbackTemplate = `
 </html>
 `;
 
+export const upsellEmail = ``;
+export const upsellFallbackEmail = ``;
+
 export const welcomeEmail = `
 <!DOCTYPE html>
 <html lang="en">
@@ -1137,7 +1140,7 @@ export const forgotPasswordEmail = `
         <div class="container">
             <div style="padding:16px;">
                 <div>
-                    <h1 style="margin-bottom: 16px;">Hi {firstName}</h1>
+                    <h1 style="margin-bottom: 16px;">Hi {name}</h1>
                     <p style="margin-bottom: 8px;">You can reset you password from <a href="{resetPasswordLink}">here</a></p>
                 </div>
             </div>
@@ -1187,7 +1190,7 @@ export const shopifyIntegrationSuccessEmail = `
         <div class="container">
             <div style="padding:16px;">
                 <div>
-                    <h1 style="margin-bottom: 16px;">Hi {firstName}</h1>
+                    <h1 style="margin-bottom: 16px;">Hi {name}</h1>
                     <p style="margin-bottom: 8px;">You have successfully integrated shopify, for the next steps, go <a href="https://zama.agency/settings?index=1">here</a></p>
                 </div>
             </div>
@@ -1237,7 +1240,7 @@ export const emailIntegrationSuccessEmail = `
         <div class="container">
             <div style="padding:16px;">
                 <div>
-                    <h1 style="margin-bottom: 16px;">Hi {firstName}</h1>
+                    <h1 style="margin-bottom: 16px;">Hi {name}</h1>
                     <p style="margin-bottom: 8px;">You have successfully integrated elastic email, for the next steps, go <a href="https://zama.agency/settings?index=2">here</a></p>
                 </div>
             </div>

@@ -6,15 +6,20 @@ import {
   ListsApi,
   TemplatesApi,
 } from '@elasticemail/elasticemail-client-ts-axios';
+import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
+import { firstValueFrom } from 'rxjs';
 import { CommonService } from 'src/common/common.service';
 
 @Injectable()
 export class ElasticEmailService {
-  constructor(private common: CommonService) {}
+  constructor(
+    private common: CommonService,
+    private httpService: HttpService,
+  ) {}
 
   async templates(userId: string) {
-    const config = await this.common.emailConfig(userId);
+    const { config } = await this.common.emailConfig(userId);
     const template = new TemplatesApi(config);
     const { data: templates } = await template.templatesGet(
       ['Global', 'Personal'],
@@ -39,7 +44,8 @@ export class ElasticEmailService {
     userId: string,
     data: EmailTransactionalMessageData,
   ) {
-    const config = await this.common.emailConfig(userId);
+    const { config, fromEmail } = await this.common.emailConfig(userId);
+    data.Content.From = fromEmail;
     const emailsApi = new EmailsApi(config);
     await emailsApi.emailsTransactionalPost(data);
   }
@@ -52,7 +58,7 @@ export class ElasticEmailService {
   }
 
   async lists(userId: string) {
-    const config = await this.common.emailConfig(userId);
+    const { config } = await this.common.emailConfig(userId);
     const listsApi = new ListsApi(config);
     const { data: lists } = await listsApi.listsGet(20);
     const modifiedData = lists.map((list) => ({
@@ -60,5 +66,35 @@ export class ElasticEmailService {
       name: list.ListName,
     }));
     return modifiedData;
+  }
+
+  async usersFromList(userId: string, listName: string, page: number) {
+    const limit = 200;
+    const offset = page * limit;
+
+    const { elasticEmailApiKey } = await this.common.emailConfig(userId);
+
+    const query = this.common.serialize({
+      offset,
+      limit,
+      listName: listName,
+      apikey: elasticEmailApiKey,
+    });
+
+    return firstValueFrom(
+      this.httpService.get(
+        `https://api.elasticemail.com/v2/contact/getcontactsbylist?${query}`,
+      ),
+    );
+  }
+
+  async updateUserAttributes(userId: string, email: string, attr: object) {
+    const { config } = await this.common.emailConfig(userId);
+    const contactApi = new ContactsApi(config);
+    await contactApi.contactsByEmailPut(email, {
+      CustomFields: {
+        ...attr,
+      },
+    });
   }
 }

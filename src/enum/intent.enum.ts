@@ -1,0 +1,4 @@
+export enum Intent {
+  RELATED = 'RELATED',
+  COMPLEMENTARY = 'COMPLEMENTARY',
+}
