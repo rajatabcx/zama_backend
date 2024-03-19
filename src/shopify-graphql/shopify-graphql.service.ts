@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { StorefrontApiClient } from '@shopify/storefront-api-client';
+import { Intent } from 'src/enum';
 
 @Injectable()
 export class ShopifyGraphqlService {
@@ -309,9 +310,11 @@ export class ShopifyGraphqlService {
   productRecommendations(
     shopifyStoreFront: StorefrontApiClient,
     productId: string,
+    intent: Intent,
   ) {
     return shopifyStoreFront.request(`query{
-      productRecommendations(productId: "${productId}",intent: RELATED) {
+      productRecommendations(productId: "${productId}",intent: ${intent}) {
+          id
           title
           description
           variants(first: 250){
@@ -320,6 +323,10 @@ export class ShopifyGraphqlService {
                 id
                 title
                 price{
+                  amount
+                  currencyCode
+                }
+                compareAtPrice {
                   amount
                   currencyCode
                 }

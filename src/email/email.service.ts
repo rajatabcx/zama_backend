@@ -59,6 +59,7 @@ export class EmailService {
           user: {
             select: {
               email: true,
+              name: true,
             },
           },
         },
@@ -76,6 +77,9 @@ export class EmailService {
               Content: emailIntegrationSuccessEmail,
             },
           ],
+          Merge: {
+            name: emailSettings.user.name,
+          },
         },
       };
       await this.elasticEmail.sendTransactionalEmailFromMe(emailData);
@@ -216,6 +220,13 @@ export class EmailService {
     }
   }
 
+  async productUpsellEmail(productUpsellId: string) {
+    try {
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Upsell Email');
+    }
+  }
+
   async addToNewsLetter(data: AddToNewsLetterDTO) {
     try {
       await this.elasticEmail.addUsersToList(
@@ -288,10 +299,10 @@ export class EmailService {
           Merge: {
             checkoutLink: `${this.config.get(
               'BACKEND_URL',
-            )}/amp/shopify/checkout-email/${checkoutId}}`,
+            )}/amp/shopify/checkout-email/${checkoutId}`,
             bestSellerLink: `${this.config.get(
               'BACKEND_URL',
-            )}/amp/shopify/bestseller-email/${checkoutId}}`,
+            )}/amp/shopify/bestseller-email/${checkoutId}`,
             updateLineItemLink: `${this.config.get(
               'BACKEND_URL',
             )}/amp/shopify/checkout-email/update-line-item`,
@@ -333,6 +344,7 @@ export class EmailService {
         statusCode: 200,
       };
     } catch (err) {
+      console.log(err);
       this.common.generateErrorResponse(err, 'Contact');
     }
   }

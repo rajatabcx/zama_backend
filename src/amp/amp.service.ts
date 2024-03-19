@@ -10,6 +10,7 @@ import {
   UpdateLineItemDTO,
 } from './dto';
 import { SelectedProducts } from 'src/shopify/type';
+import { Intent } from 'src/enum';
 
 @Injectable()
 export class AmpService {
@@ -59,11 +60,9 @@ export class AmpService {
       const allProductDetails = await Promise.all(productDetailedPromises);
 
       const modifiedProducts = allProductDetails.map((product, index) => ({
-        id: product.id,
         index: index + 1,
         title: product.title,
         body_html: product.body_html,
-        vendor: product.vendor,
         variant: product.variants
           .filter(
             (variant) =>
@@ -72,8 +71,7 @@ export class AmpService {
                 .variantId,
           )
           .map((variant) => ({
-            id: variant.id,
-            product_id: variant.product_id,
+            id: btoa(`gid://shopify/ProductVariant/${variant.id}`),
             title: variant.title,
             price: currency.money_with_currency_format.replace(
               '{{amount}}',
@@ -100,42 +98,98 @@ export class AmpService {
     }
   }
 
-  async productRecommendationEmailData(checkoutId: string, productId: string) {
-    const checkout = await this.prisma.checkout.findUnique({
+  async productRecommendationEmailData(upsellId: string) {
+    // TODO: this data should be similar to bestseller data
+    const upsell = await this.prisma.productUpsell.findUnique({
       where: {
-        id: checkoutId,
+        id: upsellId,
       },
       select: {
-        shopifyStore: {
+        user: {
           select: {
-            selectedProductIds: true,
-            accessToken: true,
-            name: true,
-            storeFrontAccessToken: true,
+            shopifyStore: {
+              select: {
+                accessToken: true,
+                name: true,
+                storeFrontAccessToken: true,
+              },
+            },
           },
         },
+        productIds: true,
       },
     });
 
-    if (!checkout) {
+    if (!upsell) {
       throw new BadRequestException('Shop Not Found');
     }
 
     try {
       const shopifyStorefront = this.common.shopifyStoreFrontObject(
-        checkout.shopifyStore.name,
-        checkout.shopifyStore.storeFrontAccessToken,
+        upsell.user.shopifyStore.name,
+        upsell.user.shopifyStore.storeFrontAccessToken,
       );
 
-      const productGlobalId = btoa(`gid://shopify/Product/${productId}`);
+      const productGlobalIds = (
+        upsell.productIds as unknown as SelectedProducts
+      ).map((product) => ({
+        productId: btoa(`gid://shopify/Product/${product.productId}`),
+        variantId: btoa(`gid://shopify/ProductVariant/${product.variantId}`),
+      }));
 
-      const { data: alsoLike } =
-        await this.shopifyGraphql.productRecommendations(
-          shopifyStorefront,
-          productGlobalId,
+      const relatedPromises = [];
+      const complementaryPromises = [];
+
+      for (const ids of productGlobalIds) {
+        relatedPromises.push(
+          this.shopifyGraphql.productRecommendations(
+            shopifyStorefront,
+            ids.productId,
+            Intent.RELATED,
+          ),
         );
+        complementaryPromises.push(
+          this.shopifyGraphql.productRecommendations(
+            shopifyStorefront,
+            ids.productId,
+            Intent.COMPLEMENTARY,
+          ),
+        );
+      }
 
-      return { items: [] };
+      let relatedProducts = await Promise.all(relatedPromises);
+      let complementaryProducts = await Promise.all(complementaryPromises);
+
+      relatedProducts = Object.values(
+        relatedProducts
+          .map((item) => item.data.productRecommendations.slice(0, 2))
+          .flat(1)
+          .reduce((acc, item) => {
+            if (acc[item.id]) {
+              return acc;
+            }
+            acc[item.id] = item;
+            return acc;
+          }, {}),
+      );
+      // .map((item, index) => ({
+      //   index: `related_${index}`,
+      //   title: item.title,
+      //   description: item.description,
+      //   variant: item.variants.edges.find(variant=>variant.node.id).map(variants=>)
+      // }));
+      // variant: {
+      //   id: '',
+      //   title: '',
+      //   price: '',
+      //   compareAtPrice: '',
+      // },
+
+      complementaryProducts = complementaryProducts
+        .map((item) => item.data.productRecommendations.slice(0, 2))
+        .flat(1);
+
+      return { relatedProducts, complementaryProducts };
     } catch (err) {
       this.common.generateErrorResponse(err, 'Shopify');
     }
@@ -178,7 +232,7 @@ export class AmpService {
         checkout.shopifyStore.accessToken,
       );
 
-      const graphqlCheckoutId = btoa(checkout.shopifyStorefrontCheckoutId);
+      const graphqlCheckoutId = checkout.shopifyStorefrontCheckoutId;
 
       const shopData = await shopifyAdmin.shop.get({
         fields: 'money_format,money_with_currency_format',
@@ -202,7 +256,7 @@ export class AmpService {
       const modifiedCheckoutLineItemData = {
         items: variantLineItems.map((variant: any, index: number) => {
           return {
-            id: variant.lineItemId,
+            id: btoa(variant.lineItemId),
             index: index + 1,
             quantity: variant.quantity,
             title: variant.product.title,
@@ -210,8 +264,8 @@ export class AmpService {
             images: [
               { src: variant.image.src, altText: variant.image.altText },
             ],
-            productId: variant.product.id,
-            variantId: variant.id,
+            productId: btoa(variant.product.id),
+            variantId: btoa(variant.id),
             variantTitle: variant.title,
             price: shopData.money_format.replace(
               '{{amount}}',
@@ -225,7 +279,7 @@ export class AmpService {
               : null,
             variants: variant.product.variants.edges.map((variant, index) => ({
               variantIndex: index,
-              vId: variant.node.id,
+              vId: btoa(variant.node.id),
               title: variant.node.title,
             })),
           };
@@ -294,8 +348,8 @@ export class AmpService {
         checkout.shopifyStore.storeFrontAccessToken,
       );
 
-      const variantId = btoa(`gid://shopify/ProductVariant/${data.variantId}`);
-      const checkoutId = btoa(checkout.shopifyStorefrontCheckoutId);
+      const variantId = data.variantId;
+      const checkoutId = checkout.shopifyStorefrontCheckoutId;
 
       await this.shopifyGraphql.addLineItemsToCheckout(
         shopify,
@@ -349,9 +403,9 @@ export class AmpService {
         checkout.shopifyStore.storeFrontAccessToken,
       );
 
-      const checkoutId = btoa(checkout.shopifyStorefrontCheckoutId);
-      const variantId = btoa(data.variantId);
-      const lineItemId = btoa(data.lineItemId);
+      const checkoutId = checkout.shopifyStorefrontCheckoutId;
+      const variantId = data.variantId;
+      const lineItemId = data.lineItemId;
       await this.shopifyGraphql.updateLineItemsInCheckout(
         shopifyStoreFront,
         checkoutId,
@@ -392,8 +446,8 @@ export class AmpService {
         checkout.shopifyStore.storeFrontAccessToken,
       );
 
-      const checkoutId = btoa(checkout.shopifyStorefrontCheckoutId);
-      const lineItemId = btoa(data.lineItemId);
+      const checkoutId = checkout.shopifyStorefrontCheckoutId;
+      const lineItemId = data.lineItemId;
 
       await this.shopifyGraphql.removeLineItemFromCheckout(
         shopifyStoreFront,
@@ -430,7 +484,7 @@ export class AmpService {
         checkout.shopifyStore.storeFrontAccessToken,
       );
 
-      const checkoutId = btoa(checkout.shopifyStorefrontCheckoutId);
+      const checkoutId = checkout.shopifyStorefrontCheckoutId;
 
       const { data: resData } = await this.shopifyGraphql.applyDiscountCode(
         shopifyStoreFront,
@@ -473,7 +527,7 @@ export class AmpService {
         checkout.shopifyStore.storeFrontAccessToken,
       );
 
-      const checkoutId = btoa(checkout.shopifyStorefrontCheckoutId);
+      const checkoutId = checkout.shopifyStorefrontCheckoutId;
 
       await this.shopifyGraphql.removeDiscountCode(
         shopifyStoreFront,

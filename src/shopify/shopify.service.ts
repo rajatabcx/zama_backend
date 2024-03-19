@@ -93,6 +93,7 @@ export class ShopifyService {
           user: {
             select: {
               email: true,
+              name: true,
             },
           },
         },
@@ -110,6 +111,9 @@ export class ShopifyService {
               Content: shopifyIntegrationSuccessEmail,
             },
           ],
+          Merge: {
+            name: shopifyStore.user.name,
+          },
         },
       };
       await this.elasticEmail.sendTransactionalEmailFromMe(emailData);
