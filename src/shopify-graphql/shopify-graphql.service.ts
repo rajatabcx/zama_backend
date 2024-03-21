@@ -11,7 +11,7 @@ export class ShopifyGraphqlService {
     return shopifyStoreFront.request(
       ` 
           query{
-            node(id: "${btoa(checkoutId)}") {
+            node(id: "${checkoutId}") {
             id
             ... on Checkout {
                 id

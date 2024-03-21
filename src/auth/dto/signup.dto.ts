@@ -1,4 +1,10 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class SignupDTO {
   @IsNotEmpty()
@@ -15,5 +21,6 @@ export class SignupDTO {
   @MinLength(6)
   password: string;
 
+  @IsBoolean()
   acceptedTNC: boolean;
 }
