@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
-import { ElasticEmailModule } from 'src/elastic-email/elastic-email.module';
+import { ShopifyModule } from 'src/shopify/shopify.module';
 
 @Module({
   controllers: [UserController],
   providers: [UserService],
-  imports: [ElasticEmailModule],
+  imports: [ShopifyModule],
 })
 export class UserModule {}

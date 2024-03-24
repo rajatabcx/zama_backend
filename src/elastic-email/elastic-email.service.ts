@@ -87,14 +87,4 @@ export class ElasticEmailService {
       ),
     );
   }
-
-  async updateUserAttributes(userId: string, email: string, attr: object) {
-    const { config } = await this.common.emailConfig(userId);
-    const contactApi = new ContactsApi(config);
-    await contactApi.contactsByEmailPut(email, {
-      CustomFields: {
-        ...attr,
-      },
-    });
-  }
 }

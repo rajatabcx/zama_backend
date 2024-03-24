@@ -1,12 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { AmpService } from './amp.service';
 import { AmpController } from './amp.controller';
-import { ShopifyGraphqlModule } from 'src/shopify-graphql/shopify-graphql.module';
 
+@Global()
 @Module({
   controllers: [AmpController],
   providers: [AmpService],
-  imports: [ShopifyGraphqlModule],
   exports: [AmpService],
 })
 export class AmpModule {}

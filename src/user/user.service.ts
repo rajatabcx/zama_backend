@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   CreateProductUpsellDTO,
   UpdateProductUpsellProductsDTO,
@@ -12,12 +12,7 @@ import { UpdateProductUpsellListDTO } from './dto/updateProductUpsellList.dto';
 import { ShopifyGraphqlService } from 'src/shopify-graphql/shopify-graphql.service';
 import { SelectedProducts } from 'src/shopify/type';
 import { ElasticEmailService } from 'src/elastic-email/elastic-email.service';
-import {
-  ContactsApi,
-  EmailTransactionalMessageData,
-} from '@elasticemail/elasticemail-client-ts-axios';
-import { ConfigService } from '@nestjs/config';
-import { upsellEmail, upsellFallbackEmail } from 'src/email/data';
+import { ShopifyService } from 'src/shopify/shopify.service';
 
 @Injectable()
 export class UserService {
@@ -26,7 +21,7 @@ export class UserService {
     private common: CommonService,
     private shopifyGraphql: ShopifyGraphqlService,
     private elasticEmailService: ElasticEmailService,
-    private config: ConfigService,
+    private shopify: ShopifyService,
   ) {}
 
   async profile(userId: string) {
@@ -207,9 +202,21 @@ export class UserService {
     }
   }
 
-  async runProductUpsell(productUpsellId: string) {
+  async runProductUpsell(userId: string, productUpsellId: string) {
+    const runningUpsells = await this.prisma.productUpsell.findMany({
+      where: {
+        userId,
+        status: UpsellStatus.ONGOING,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (runningUpsells.length)
+      throw new BadRequestException('Can run one upsell at a time');
+
     try {
-      // TODO: Add a limiter to run a single upsell at a time, if another one is running, it wont run
       await this.prisma.productUpsell.update({
         where: {
           id: productUpsellId,
@@ -218,14 +225,14 @@ export class UserService {
           status: UpsellStatus.ONGOING,
         },
       });
-      this.productUpsellTasks(productUpsellId);
+      this.productUpsellTasks(userId, productUpsellId);
       return { data: {}, message: 'SUCCESS', statusCode: 200 };
     } catch (err) {
       this.common.generateErrorResponse(err, 'Product Upsell');
     }
   }
 
-  async productUpsellTasks(productUpsellId: string) {
+  async productUpsellTasks(userId: string, productUpsellId: string) {
     try {
       const upsell = await this.prisma.productUpsell.update({
         where: {
@@ -263,17 +270,13 @@ export class UserService {
         quantity: 1,
       }));
 
-      // TODO: get all users from the list
-
       const { data } = await this.elasticEmailService.usersFromList(
         upsell.user.id,
         upsell.listName,
         0,
       );
       const emailList = data.data.map((contact) => contact.email);
-      console.log(emailList);
 
-      // TODO: update their custom fields
       for (const email of emailList) {
         const { data: resData } = await this.shopifyGraphql.createCheckout(
           shopifyStorefrontClient,
@@ -281,73 +284,29 @@ export class UserService {
         );
 
         const attr = {
-          shopifyStorefrontCheckoutId: resData.checkoutCreate.checkout.id, // this is global id, need this to update, send on the email as btoa format
+          shopifyStorefrontCheckoutId: resData.checkoutCreate.checkout.id,
           checkoutURL: resData.checkoutCreate.checkout.webUrl,
         };
         const checkoutId = btoa(attr.shopifyStorefrontCheckoutId);
+
         await this.shopifyGraphql.checkoutEmailUpdate(
           shopifyStorefrontClient,
           checkoutId,
           email,
         );
 
-        await this.elasticEmailService.updateUserAttributes(
-          upsell.user.id,
+        await this.shopify.productUpsellEmail(
+          userId,
           email,
-          attr,
+          productUpsellId,
+          checkoutId,
+          attr.checkoutURL,
         );
-        console.log('---product upsell links---');
-        console.log(attr);
-        console.log('---product upsell links---');
-        // const emailData: EmailTransactionalMessageData = {
-        //   Recipients: {
-        //     To: [email],
-        //   },
-        //   Content: {
-        //     Subject: 'Checkout our new products',
-        //     Merge: {
-        //       upsellLink: `${this.config.get(
-        //         'BACKEND_URL',
-        //       )}/amp/shopify/upsell-email/${productUpsellId}`,
-        //       recommendationLink: `${this.config.get(
-        //         'BACKEND_URL',
-        //       )}/amp/shopify/bestseller-email/${productUpsellId}`,
-        //       updateLineItemLink: `${this.config.get(
-        //         'BACKEND_URL',
-        //       )}/amp/shopify/checkout-email/update-line-item`,
-        //       addLineItemLink: `${this.config.get(
-        //         'BACKEND_URL',
-        //       )}/amp/shopify/checkout-email/add-line-item`,
-        //       removeLineItemLink: `${this.config.get(
-        //         'BACKEND_URL',
-        //       )}/amp/shopify/checkout-email/remove-line-item`,
-        //       applyDiscountLink: `${this.config.get(
-        //         'BACKEND_URL',
-        //       )}/amp/shopify/checkout-email/apply-discount`,
-        //       removeDiscountLink: `${this.config.get(
-        //         'BACKEND_URL',
-        //       )}/amp/shopify/checkout-email/remove-discount`,
-        //       abandonedCheckoutURL: attr.checkoutURL,
-        //     },
-        //     Body: [
-        //       {
-        //         ContentType: 'AMP',
-        //         Content: upsellEmail,
-        //       },
-        //       {
-        //         ContentType: 'HTML',
-        //         Content: upsellFallbackEmail,
-        //       },
-        //     ],
-        //   },
-        // };
-        // await this.elasticEmailService.sendTransactionalEmail(
-        //   upsell.user.id,
-        //   emailData,
-        // );
       }
     } catch (err) {
+      console.log('---Upsell Task Error---');
       console.log(err.response);
+      console.log('---Upsell Task Error End---');
       await this.prisma.productUpsell.update({
         where: {
           id: productUpsellId,
@@ -356,7 +315,6 @@ export class UserService {
           status: UpsellStatus.ERROR,
         },
       });
-      // this.common.generateErrorResponse(err, 'Upsell');
     }
   }
 }
