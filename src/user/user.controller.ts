@@ -74,7 +74,10 @@ export class UserController {
   }
 
   @Patch('/product-upsells/:productUpsellId/run')
-  runProductUpsell(@Param('productUpsellId') productUpsellId: string) {
-    return this.userService.runProductUpsell(productUpsellId);
+  runProductUpsell(
+    @UserId() userId: string,
+    @Param('productUpsellId') productUpsellId: string,
+  ) {
+    return this.userService.runProductUpsell(userId, productUpsellId);
   }
 }

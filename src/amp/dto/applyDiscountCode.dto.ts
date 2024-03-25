@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsString } from 'class-validator';
 
-export class ApplyDiscountCodeDTO {
+export class ApplyDiscountCodeFromCheckoutDTO {
   @IsString()
   @IsNotEmpty()
   discountCode: string;
@@ -8,4 +8,18 @@ export class ApplyDiscountCodeDTO {
   @IsString()
   @IsNotEmpty()
   checkoutId: string;
+}
+
+export class ApplyDiscountCodeFromUpsellDTO {
+  @IsString()
+  @IsNotEmpty()
+  discountCode: string;
+
+  @IsString()
+  @IsNotEmpty()
+  checkoutId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  upsellId: string;
 }

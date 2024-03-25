@@ -10,6 +10,7 @@ import {
   ParseIntPipe,
   Patch,
   Delete,
+  Param,
 } from '@nestjs/common';
 import { ShopifyService } from './shopify.service';
 import { Request, Response } from 'express';
@@ -137,5 +138,13 @@ export class ShopifyController {
   @Get('/check-connection')
   checkConnection(@UserId() userId: string) {
     return this.shopifyService.checkConnection(userId);
+  }
+
+  @Post('/send-checkout-email/:checkoutId')
+  checkoutEmail(
+    @UserId() userId: string,
+    @Param('checkoutId') checkoutId: string,
+  ) {
+    return this.shopifyService.checkoutEmail(userId, checkoutId);
   }
 }

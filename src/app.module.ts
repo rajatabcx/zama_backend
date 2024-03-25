@@ -15,6 +15,7 @@ import { CronService } from './app.cron.service';
 import { ShopifyGraphqlModule } from './shopify-graphql/shopify-graphql.module';
 import { AmpModule } from './amp/amp.module';
 import { ElasticEmailModule } from './elastic-email/elastic-email.module';
+import { LandingModule } from './landing/landing.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { ElasticEmailModule } from './elastic-email/elastic-email.module';
     ShopifyGraphqlModule,
     AmpModule,
     ElasticEmailModule,
+    LandingModule,
   ],
   controllers: [AppController],
   providers: [
