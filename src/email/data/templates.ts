@@ -1892,15 +1892,15 @@ export const upsellEmailTemplate = `
 
                                                 </form>
                                                 <button tabindex="1" role="" class="btn"
-                                                    on="tap:AMP.setState({ zamaState: { addingToCart: {{index}} } }), add_to_cart_{{index}}.submit">
+                                                    on="tap:AMP.setState({ zamaState: { addingToCart: "{{index}}" } }), add_to_cart_{{index}}.submit">
                                                     <p class="cart"
-                                                        [text]="(zamaState.addingToCart == {{index}} ? 'Adding to cart' : 'Add to cart')">
+                                                        [text]="(zamaState.addingToCart == "{{index}}" ? 'Adding to cart' : 'Add to cart')">
                                                         Add To Cart
                                                     <div
-                                                        [class]="(zamaState.addingToCart == {{index}} ? '' : 'cartButtonIcon')">
+                                                        [class]="(zamaState.addingToCart == "{{index}}" ? '' : 'cartButtonIcon')">
                                                     </div>
                                                     <div
-                                                        [class]="'btn-spinner ' + (zamaState.addingToCart == {{index}} ? 'spinner-rotate' : 'spinner-hide')">
+                                                        [class]="'btn-spinner ' + (zamaState.addingToCart == "{{index}}" ? 'spinner-rotate' : 'spinner-hide')">
                                                     </div>
                                                     </p>
                                                 </button>
@@ -1975,15 +1975,15 @@ export const upsellEmailTemplate = `
 
                                                 </form>
                                                 <button tabindex="1" role="" class="btn"
-                                                    on="tap:AMP.setState({ zamaState: { addingToCart: {{index}} } }), add_to_cart_{{index}}.submit">
+                                                    on="tap:AMP.setState({ zamaState: { addingToCart: "{{index}}" } }), add_to_cart_{{index}}.submit">
                                                     <p class="cart"
-                                                        [text]="(zamaState.addingToCart == {{index}} ? 'Adding to cart' : 'Add to cart')">
+                                                        [text]="(zamaState.addingToCart == "{{index}}" ? 'Adding to cart' : 'Add to cart')">
                                                         Add To Cart
                                                     <div
-                                                        [class]="(zamaState.addingToCart == {{index}} ? '' : 'cartButtonIcon')">
+                                                        [class]="(zamaState.addingToCart == "{{index}}" ? '' : 'cartButtonIcon')">
                                                     </div>
                                                     <div
-                                                        [class]="'btn-spinner ' + (zamaState.addingToCart == {{index}} ? 'spinner-rotate' : 'spinner-hide')">
+                                                        [class]="'btn-spinner ' + (zamaState.addingToCart == "{{index}}" ? 'spinner-rotate' : 'spinner-hide')">
                                                     </div>
                                                     </p>
                                                 </button>
