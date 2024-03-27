@@ -1,10 +1,10 @@
 # ZAMA Backend
 
-sendDiscount Boolean @default(false)
+---
 
-## use base64 encoded data for global id, where ever I am using global ids
+use a custom domain instead of shopify domain
 
-product upsell email
+---
 
 while creating from frontend,
 ask them if they want to add a discount
