@@ -19,9 +19,9 @@ import {
 import * as argon2 from 'argon2';
 import { JwtPayload } from './types';
 import { Response } from 'express';
-import { ElasticEmailService } from 'src/elastic-email/elastic-email.service';
 import { EmailTransactionalMessageData } from '@elasticemail/elasticemail-client-ts-axios';
-import { forgotPasswordEmail, welcomeEmail } from 'src/email/data';
+import { forgotPasswordEmail, welcomeEmail } from 'src/data';
+import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class AuthService {
@@ -30,7 +30,7 @@ export class AuthService {
     private common: CommonService,
     private config: ConfigService,
     private jwtService: JwtService,
-    private elasticService: ElasticEmailService,
+    private email: EmailService,
   ) {}
 
   async signUp(data: SignupDTO) {
@@ -51,7 +51,7 @@ export class AuthService {
         },
       });
 
-      const addUserToListPromise = this.elasticService.addUsersToList(
+      const addUserToListPromise = this.email.addUsersToList(
         [{ Email: data.email, FirstName: data.name }],
         ['Zama Users'],
       );
@@ -74,8 +74,7 @@ export class AuthService {
         },
       };
 
-      const emailPromise =
-        this.elasticService.sendTransactionalEmailFromMe(emailData);
+      const emailPromise = this.email.sendTransactionalEmailFromMe(emailData);
 
       await Promise.all([userPromise, addUserToListPromise, emailPromise]);
 
@@ -241,7 +240,7 @@ export class AuthService {
         },
       };
 
-      await this.elasticService.sendTransactionalEmailFromMe(emailData);
+      await this.email.sendTransactionalEmailFromMe(emailData);
 
       return {
         data: {},

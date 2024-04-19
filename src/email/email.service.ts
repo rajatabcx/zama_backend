@@ -1,112 +1,43 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CommonService } from 'src/common/common.service';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateEmailSettingsDTO, UpdateEmailSettingsDTO } from './dto';
-import { EmailTransactionalMessageData } from '@elasticemail/elasticemail-client-ts-axios';
+import {
+  ContactPayload,
+  ContactsApi,
+  EmailsApi,
+  EmailTransactionalMessageData,
+} from '@elasticemail/elasticemail-client-ts-axios';
 import { ElasticEmailService } from 'src/elastic-email/elastic-email.service';
-import { emailIntegrationSuccessEmail } from './data';
+import { EmailServiceInterface } from 'src/interfaces';
+import { EmailServiceProvider } from '@prisma/client';
 
 @Injectable()
 export class EmailService {
   constructor(
-    private prisma: PrismaService,
     private common: CommonService,
-    private elasticEmail: ElasticEmailService,
+    private elasticEmailService: ElasticEmailService,
   ) {}
 
-  async emailSettings(userId: string) {
-    try {
-      const email = await this.prisma.emailSettings.findUnique({
-        where: {
-          userId,
-        },
-        select: {
-          elasticEmailApiKey: true,
-          checkoutTemplateName: true,
-          productUpsellTemplateName: true,
-          fromEmail: true,
-        },
-      });
-      return { data: email, statusCode: 200, message: 'SUCCESS' };
-    } catch (err) {
-      this.common.generateErrorResponse(err, 'Email');
-    }
+  async sendTransactionalEmailFromMe(data: EmailTransactionalMessageData) {
+    data.Content.From = 'Rajat Mondal <info@zama.agency>';
+    const config = this.common.myEmailConfig();
+    const emailsApi = new EmailsApi(config);
+    await emailsApi.emailsTransactionalPost(data);
   }
 
-  async addEmailSettings(userId: string, data: CreateEmailSettingsDTO) {
-    try {
-      const emailSettings = await this.prisma.emailSettings.create({
-        data: {
-          elasticEmailApiKey: data.elasticEmailApiKey,
-          userId,
-        },
-        select: {
-          user: {
-            select: {
-              email: true,
-              name: true,
-            },
-          },
-        },
-      });
-
-      const emailData: EmailTransactionalMessageData = {
-        Recipients: {
-          To: [emailSettings.user.email],
-        },
-        Content: {
-          Subject: 'Successfully integrated Elastic Email into Zama!!',
-          Body: [
-            {
-              ContentType: 'HTML',
-              Content: emailIntegrationSuccessEmail,
-            },
-          ],
-          Merge: {
-            name: emailSettings.user.name,
-          },
-        },
-      };
-      await this.elasticEmail.sendTransactionalEmailFromMe(emailData);
-    } catch (err) {
-      this.common.generateErrorResponse(err, 'Email Settings');
-    }
+  async addUsersToList(users: ContactPayload[], lists: string[]) {
+    const config = this.common.myEmailConfig();
+    const contacts = new ContactsApi(config);
+    await contacts.contactsPost(users, lists);
   }
 
-  async updateEmailSettings(userId: string, data: UpdateEmailSettingsDTO) {
-    try {
-      await this.prisma.emailSettings.update({
-        where: {
-          userId,
-        },
-        data: {
-          elasticEmailApiKey: data.elasticEmailApiKey,
-          checkoutTemplateName: data.checkoutTemplateName,
-          productUpsellTemplateName: data.productUpsellTemplateName,
-          fromEmail: data.fromEmail,
-        },
-      });
-    } catch (err) {
-      this.common.generateErrorResponse(err, 'Email Settings');
-    }
-  }
-
-  async emailTemplates(userId: string) {
-    try {
-      const data = await this.elasticEmail.templates(userId);
-
-      return { data, statusCode: 200, message: 'SUCCESS' };
-    } catch (err) {
-      this.common.generateErrorResponse(err, 'Email Templates');
-    }
-  }
-
-  async emailLists(userId: string) {
-    try {
-      const data = await this.elasticEmail.lists(userId);
-      return { data, statusCode: 200, message: 'SUCCESS' };
-    } catch (err) {
-      this.common.generateErrorResponse(err, 'Email Templates');
+  createEmailService(esp: EmailServiceProvider): EmailServiceInterface {
+    switch (esp) {
+      case EmailServiceProvider.ELASTICEMAIL:
+        return this.elasticEmailService;
+      default:
+        throw new BadRequestException(
+          `Email service for platform ${esp} not found`,
+        );
     }
   }
 }

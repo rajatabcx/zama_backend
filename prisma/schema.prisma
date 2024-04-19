@@ -17,18 +17,31 @@ enum UpsellStatus {
   ERROR
 }
 
+enum EmailServiceProvider {
+  ELASTICEMAIL
+  BRAZE
+}
+
+enum ReviewPlatformName {
+  JUDGE_ME
+  OKENDO
+  YOTPO
+}
+
 model User {
-  id             String          @id @unique @default(uuid())
-  name           String?
-  email          String          @unique
-  password       String?
-  passwordToken  String?
-  productUpsells ProductUpsell[]
-  shopifyStore   ShopifyStore?
-  emailSetting   EmailSettings?
-  acceptedTNC    Boolean         @default(false)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id              String           @id @unique @default(uuid())
+  name            String?
+  email           String           @unique
+  password        String?
+  passwordToken   String?
+  shopifyStore    ShopifyStore?
+  emailSettings   EmailSettings[]
+  reviewPlatforms ReviewPlatform[]
+  productUpsells  ProductUpsell[]
+  integrations    Json?
+  acceptedTNC     Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@index([name])
   @@index([email])
@@ -36,15 +49,18 @@ model User {
 }
 
 model EmailSettings {
-  id                        String   @id @unique @default(uuid())
-  elasticEmailApiKey        String
-  checkoutTemplateName      String?
-  productUpsellTemplateName String?
-  fromEmail                 String?
-  userId                    String   @unique
-  user                      User     @relation(fields: [userId], references: [id])
-  createdAt                 DateTime @default(now())
-  updatedAt                 DateTime @updatedAt
+  id                    String               @id @unique @default(uuid())
+  apiKey                String
+  checkoutTemplate      String?
+  productUpsellTemplate String?
+  reviewTemplate        String?
+  fromEmail             String?
+  emailServiceProvider  EmailServiceProvider @default(ELASTICEMAIL)
+  enabled               Boolean              @default(false)
+  userId                String
+  user                  User                 @relation(fields: [userId], references: [id])
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 
   @@map("email_settings")
 }
@@ -73,18 +89,21 @@ model ShopifyStore {
 }
 
 model Checkout {
-  id                             String       @id @unique @default(uuid())
-  shopifyAdminCheckoutToken      String       @unique
-  shopifyStorefrontCheckoutId    String       @unique
-  shopifyStoreFrontCheckoutToken String       @unique
-  shopifyAbandonedCheckoutURL    String       @unique
-  email                          String?
-  emailSent                      Boolean      @default(false)
-  orderFulFilled                 Boolean      @default(false)
-  shopifyStoreId                 String
-  shopifyStore                   ShopifyStore @relation(fields: [shopifyStoreId], references: [id])
-  createdAt                      DateTime     @default(now())
-  updatedAt                      DateTime     @updatedAt
+  id                          String       @id @unique @default(uuid())
+  shopifyAdminCheckoutToken   String       @unique
+  shopifyStorefrontCheckoutId String       @unique
+  shopifyAbandonedCheckoutURL String       @unique
+  orderPlaced                 Boolean      @default(false)
+  orderFulFilled              Boolean      @default(false)
+  shopifyOrderId              BigInt?      @unique
+  shopifyOrderGraphqlId       String?      @unique
+  email                       String?
+  checkoutEmailSent           Boolean      @default(false)
+  reviewEmailSent             Boolean      @default(false)
+  shopifyStoreId              String
+  shopifyStore                ShopifyStore @relation(fields: [shopifyStoreId], references: [id])
+  createdAt                   DateTime     @default(now())
+  updatedAt                   DateTime     @updatedAt
 
   @@map("checkouts")
 }
@@ -104,4 +123,17 @@ model ProductUpsell {
   updatedAt    DateTime     @updatedAt
 
   @@map("product_upsells")
+}
+
+model ReviewPlatform {
+  id          String             @id @unique @default(uuid())
+  accessToken String
+  name        ReviewPlatformName
+  enabled     Boolean
+  userId      String             @unique
+  user        User               @relation(fields: [userId], references: [id])
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@map("review_platforms")
 }

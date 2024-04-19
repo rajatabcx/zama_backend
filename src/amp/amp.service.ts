@@ -7,6 +7,7 @@ import {
   AddLineItemFromUpsellDTO,
   ApplyDiscountCodeFromCheckoutDTO,
   ApplyDiscountCodeFromUpsellDTO,
+  CollectReviewDTO,
   RemoveDiscountCodeFromCheckoutDTO,
   RemoveDiscountCodeFromUpsellDTO,
   RemoveLineItemFromCheckoutDTO,
@@ -119,7 +120,6 @@ export class AmpService {
           },
         },
         orderFulFilled: true,
-        shopifyStoreFrontCheckoutToken: true,
         shopifyAdminCheckoutToken: true,
         shopifyStorefrontCheckoutId: true,
         shopifyAbandonedCheckoutURL: true,
@@ -249,7 +249,6 @@ export class AmpService {
           shopifyAdminCheckoutToken: true,
           shopifyStorefrontCheckoutId: true,
           shopifyAbandonedCheckoutURL: true,
-          shopifyStoreFrontCheckoutToken: true,
         },
       });
 
@@ -306,7 +305,6 @@ export class AmpService {
           shopifyAdminCheckoutToken: true,
           shopifyStorefrontCheckoutId: true,
           shopifyAbandonedCheckoutURL: true,
-          shopifyStoreFrontCheckoutToken: true,
         },
       });
 
@@ -351,7 +349,6 @@ export class AmpService {
           shopifyAdminCheckoutToken: true,
           shopifyStorefrontCheckoutId: true,
           shopifyAbandonedCheckoutURL: true,
-          shopifyStoreFrontCheckoutToken: true,
         },
       });
 
@@ -974,5 +971,64 @@ export class AmpService {
     } catch (err) {
       this.common.generateErrorResponse(err, 'Checkout');
     }
+  }
+
+  // review options
+
+  async reviewEmailData(orderId: number) {
+    const checkout = await this.prisma.checkout.findFirst({
+      where: {
+        shopifyOrderId: orderId,
+      },
+      select: {
+        shopifyStore: {
+          select: {
+            accessToken: true,
+            name: true,
+          },
+        },
+      },
+    });
+    if (!checkout) {
+      throw new BadRequestException('Shop Not Found');
+    }
+    try {
+      const shopify = this.common.shopifyObject(
+        checkout.shopifyStore.name,
+        checkout.shopifyStore.accessToken,
+      );
+
+      const orderDetails = await shopify.order.get(orderId);
+      const productPromises = orderDetails.line_items.map((lineItem) => {
+        return shopify.product.get(lineItem.product_id);
+      });
+
+      const products = await Promise.all(productPromises);
+      const modifiedProducts = products.map((product) => ({
+        productId: product.id,
+        name: product.title,
+        description: product.body_html,
+        img: product.image.src,
+        imgAlt: product.image.alt,
+      }));
+      const reviewEmailData = {
+        items: modifiedProducts,
+      };
+      return [{ items: modifiedProducts }];
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Shopify');
+    }
+  }
+
+  async collectReview(data: CollectReviewDTO) {
+    const ratingArr = data.rating.split('-');
+
+    const payload = {
+      ...data,
+      rating: Number(ratingArr[ratingArr.length - 1]),
+      productId: Number(data.productId),
+    };
+    console.log(payload);
+    return { data: 'SUCCESS' };
   }
 }

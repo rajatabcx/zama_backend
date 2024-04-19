@@ -10,12 +10,15 @@ import { CommonModule } from './common/common.module';
 import { ShopifyModule } from './shopify/shopify.module';
 import { UserModule } from './user/user.module';
 import { WebhookModule } from './webhook/webhook.module';
-import { EmailModule } from './email/email.module';
 import { CronService } from './app.cron.service';
 import { ShopifyGraphqlModule } from './shopify-graphql/shopify-graphql.module';
 import { AmpModule } from './amp/amp.module';
 import { ElasticEmailModule } from './elastic-email/elastic-email.module';
 import { LandingModule } from './landing/landing.module';
+import { JudgeMeModule } from './judge-me/judge-me.module';
+import { EmailModule } from './email/email.module';
+import { EmailConfigModule } from './email-config/email-config.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -28,11 +31,14 @@ import { LandingModule } from './landing/landing.module';
     ShopifyModule,
     UserModule,
     WebhookModule,
-    EmailModule,
     ShopifyGraphqlModule,
     AmpModule,
     ElasticEmailModule,
     LandingModule,
+    JudgeMeModule,
+    EmailModule,
+    EmailConfigModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [

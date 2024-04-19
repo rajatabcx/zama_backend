@@ -102,6 +102,23 @@ export class ShopifyGraphqlService {
     );
   }
 
+  getOrderDetails(shopifyStoreFront: StorefrontApiClient) {
+    return shopifyStoreFront.request(
+      ` 
+          query{
+            node(first: 20) {
+            ... on Order {
+                name
+                id
+              displayFulfillmentStatus
+              displayFinancialStatus
+            }
+          }
+        }
+          `,
+    );
+  }
+
   createCheckout(
     shopifyStoreFront: StorefrontApiClient,
     lineItems: { variantId: string; quantity: number }[],

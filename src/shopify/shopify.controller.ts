@@ -14,7 +14,6 @@ import {
 } from '@nestjs/common';
 import { ShopifyService } from './shopify.service';
 import { Request, Response } from 'express';
-import { Public } from 'src/guards';
 import {
   DiscountPercentageDTO,
   InstallShopifyDTO,
@@ -28,7 +27,6 @@ import { UserId } from 'src/decorators';
 export class ShopifyController {
   constructor(private readonly shopifyService: ShopifyService) {}
 
-  @Public()
   @Post('/install')
   shopify(
     @Body() data: InstallShopifyDTO,
@@ -103,15 +101,6 @@ export class ShopifyController {
     return this.shopifyService.removeDiscount(userId);
   }
 
-  @Get('/checkouts')
-  checkouts(
-    @UserId() userId: string,
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
-  ) {
-    return this.shopifyService.checkouts(userId, page, limit);
-  }
-
   @Get('/hour')
   hour(@UserId() userId: string) {
     return this.shopifyService.hour(userId);
@@ -138,13 +127,5 @@ export class ShopifyController {
   @Get('/check-connection')
   checkConnection(@UserId() userId: string) {
     return this.shopifyService.checkConnection(userId);
-  }
-
-  @Post('/send-checkout-email/:checkoutId')
-  checkoutEmail(
-    @UserId() userId: string,
-    @Param('checkoutId') checkoutId: string,
-  ) {
-    return this.shopifyService.checkoutEmail(userId, checkoutId);
   }
 }

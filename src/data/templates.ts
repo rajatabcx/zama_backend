@@ -2289,6 +2289,56 @@ export const shopifyIntegrationSuccessEmail = `
 </html>
 `;
 
+export const judgeMeIntegrationSuccessEmail = `
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .outerContainer {
+            display: flex;
+            justify-content: center;
+            background-color: #F5F5F5;
+            padding: 16px;
+        }
+
+        .container {
+            border-radius: 6px;
+            min-width: 400px;
+            max-width: 600px;
+            flex-grow: 1;
+            background-color: #fff;
+            margin:auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="outerContainer">
+        <div class="container">
+            <div style="padding:16px;">
+                <div>
+                    <h1 style="margin-bottom: 16px;">Hi {name}</h1>
+                    <p style="margin-bottom: 8px;">You have successfully integrated judge.me, you can start receiving reviews from email</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+
+</html>
+`;
+
 export const emailIntegrationSuccessEmail = `
 <!DOCTYPE html>
 <html lang="en">

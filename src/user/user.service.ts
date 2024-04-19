@@ -6,13 +6,20 @@ import {
 } from './dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CommonService } from 'src/common/common.service';
-import { ShopName } from 'src/enum';
-import { Prisma, UpsellStatus } from '@prisma/client';
+import { EmailServiceProvider, Prisma, UpsellStatus } from '@prisma/client';
 import { UpdateProductUpsellListDTO } from './dto/updateProductUpsellList.dto';
 import { ShopifyGraphqlService } from 'src/shopify-graphql/shopify-graphql.service';
 import { SelectedProducts } from 'src/shopify/type';
-import { ElasticEmailService } from 'src/elastic-email/elastic-email.service';
-import { ShopifyService } from 'src/shopify/shopify.service';
+import { EmailTransactionalMessageData } from '@elasticemail/elasticemail-client-ts-axios';
+import {
+  checkoutFallbackTemplate,
+  checkoutTemplate,
+  upsellEmailTemplate,
+  upsellFallbackTemplate,
+} from 'src/data';
+import { ConfigService } from '@nestjs/config';
+import { AmpService } from 'src/amp/amp.service';
+import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class UserService {
@@ -20,8 +27,9 @@ export class UserService {
     private prisma: PrismaService,
     private common: CommonService,
     private shopifyGraphql: ShopifyGraphqlService,
-    private elasticEmailService: ElasticEmailService,
-    private shopify: ShopifyService,
+    private config: ConfigService,
+    private amp: AmpService,
+    private email: EmailService,
   ) {}
 
   async profile(userId: string) {
@@ -69,23 +77,12 @@ export class UserService {
           id: userId,
         },
         select: {
-          shopifyStore: {
-            select: {
-              name: true,
-              scope: true,
-            },
-          },
+          integrations: true,
         },
       });
+      const integrations = data.integrations;
       return {
-        data: {
-          [ShopName.SHOPIFY]: data.shopifyStore
-            ? {
-                shopName: data.shopifyStore.name,
-                scope: data.shopifyStore.scope,
-              }
-            : null,
-        },
+        data: integrations,
         statusCode: 200,
         message: 'SUCCESS',
       };
@@ -139,6 +136,104 @@ export class UserService {
         },
         statusCode: 200,
         message: 'SUCCESS',
+      };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Checkout');
+    }
+  }
+
+  async checkouts(userId: string, page: number, limit: number) {
+    try {
+      const shopifyObj = await this.common.shopifyObjectForShop(userId);
+
+      if (!shopifyObj.connected)
+        return {
+          data: { connected: false },
+          message: 'SUCCESS',
+          statusCode: 200,
+        };
+
+      const checkoutsPromise = this.prisma.checkout.findMany({
+        where: {
+          shopifyStore: {
+            userId,
+          },
+        },
+        select: {
+          id: true,
+          email: true,
+          orderFulFilled: true,
+          createdAt: true,
+          reviewEmailSent: true,
+          orderPlaced: true,
+          checkoutEmailSent: true,
+        },
+        take: limit,
+        skip: (page - 1) * limit,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+      const totalPromise = this.prisma.checkout.count({
+        where: {
+          shopifyStore: {
+            userId,
+          },
+        },
+      });
+
+      const [checkouts, total] = await this.prisma.$transaction([
+        checkoutsPromise,
+        totalPromise,
+      ]);
+
+      const { hasNextPage, hasPrevPage, nextPage, prevPage, totalPages } =
+        this.common.calculatePaginationDetails(total, page, limit);
+
+      return {
+        data: {
+          checkouts,
+          total,
+          hasNextPage,
+          hasPrevPage,
+          nextPage,
+          prevPage,
+          totalPages,
+          connected: true,
+        },
+        statusCode: 200,
+        message: 'SUCCESS',
+      };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Checkout');
+    }
+  }
+
+  async orders(userId: string, limit: string, page_info: string) {
+    try {
+      const params = page_info ? { limit, page_info } : { limit };
+      const shopifyObj = await this.common.shopifyObjectForShop(userId);
+
+      if (!shopifyObj.connected)
+        return {
+          data: { connected: false },
+          message: 'SUCCESS',
+          statusCode: 200,
+        };
+
+      const orders = await shopifyObj.shopify.order.list({
+        status: 'any',
+        ...params,
+      });
+
+      return {
+        data: {
+          orders,
+          nextPageParams: orders.nextPageParameters || null,
+          prevPageParams: orders.previousPageParameters || null,
+        },
+        message: 'SUCCESS',
+        statusCode: 200,
       };
     } catch (err) {
       this.common.generateErrorResponse(err, 'Checkout');
@@ -251,6 +346,15 @@ export class UserService {
                   name: true,
                 },
               },
+              emailSettings: {
+                take: 1,
+                where: {
+                  enabled: true,
+                },
+                select: {
+                  emailServiceProvider: true,
+                },
+              },
             },
           },
           productIds: true,
@@ -270,10 +374,15 @@ export class UserService {
         quantity: 1,
       }));
 
-      const { data } = await this.elasticEmailService.usersFromList(
+      const emailService = this.email.createEmailService(
+        upsell.user.emailSettings[0].emailServiceProvider,
+      );
+
+      const { data } = await emailService.usersFromList(
         upsell.user.id,
         upsell.listName,
         0,
+        200,
       );
       const emailList = data.data.map((contact) => contact.email);
 
@@ -295,12 +404,13 @@ export class UserService {
           email,
         );
 
-        await this.shopify.productUpsellEmail(
+        await this.productUpsellEmail(
           userId,
           email,
           productUpsellId,
           checkoutId,
           attr.checkoutURL,
+          upsell.user.emailSettings[0].emailServiceProvider,
         );
       }
     } catch (err) {
@@ -315,6 +425,214 @@ export class UserService {
           status: UpsellStatus.ERROR,
         },
       });
+    }
+  }
+
+  async checkoutEmail(userId: string, checkoutId: string) {
+    try {
+      const checkout = await this.prisma.checkout.findUnique({
+        where: {
+          id: checkoutId,
+        },
+        select: {
+          email: true,
+          shopifyStorefrontCheckoutId: true,
+          shopifyStore: {
+            select: {
+              user: {
+                select: {
+                  emailSettings: {
+                    where: {
+                      enabled: true,
+                    },
+                    select: {
+                      emailServiceProvider: true,
+                    },
+                    take: 1,
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const checkoutDetails = await this.amp.checkoutEmailData(checkoutId);
+
+      const productsHTML: string[] = checkoutDetails[0].items.map(
+        (lineItem) => {
+          const html = `
+        <div class="product">
+                        <div><img src="${lineItem.images[0].src}" height="60" width="60"></div>
+                        <div class="productDetails">
+                            <div style="margin:auto">${lineItem.title} &nbsp;&nbsp; x&nbsp;&nbsp; ${lineItem.quantity}</div>
+                            <div style="margin:auto;margin-left:24px">${lineItem.price}</div>
+                        </div>
+                    </div>
+                    `;
+          return html;
+        },
+      );
+
+      const emailMessageData: EmailTransactionalMessageData = {
+        Recipients: {
+          To: [checkout.email],
+        },
+        Content: {
+          Subject:
+            'Snow Way! Your Board Dreams Await - Complete Your Checkout!',
+          Merge: {
+            checkoutLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/checkout-email/${checkoutId}`,
+            bestSellerLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/bestseller-email/${checkoutId}`,
+            updateLineItemLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/checkout-email/update-line-item`,
+            addLineItemLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/checkout-email/add-line-item`,
+            removeLineItemLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/checkout-email/remove-line-item`,
+            applyDiscountLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/checkout-email/apply-discount`,
+            removeDiscountLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/checkout-email/remove-discount`,
+            abandonedCheckoutURL: checkoutDetails[0].checkoutUrl,
+          },
+          Body: [
+            {
+              ContentType: 'AMP',
+              Content: checkoutTemplate,
+            },
+            {
+              ContentType: 'HTML',
+              Content: checkoutFallbackTemplate.replace(
+                '{{products}}',
+                productsHTML.join('\n'),
+              ),
+            },
+          ],
+        },
+      };
+
+      const emailService = this.email.createEmailService(
+        checkout.shopifyStore.user.emailSettings[0].emailServiceProvider,
+      );
+      await emailService.sendTransactionalEmail(userId, emailMessageData);
+
+      await this.prisma.checkout.update({
+        where: {
+          id: checkoutId,
+        },
+        data: {
+          checkoutEmailSent: true,
+        },
+      });
+
+      return {
+        data: {},
+        message: 'SUCCESS',
+        statusCode: 200,
+      };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Checkout email');
+    }
+  }
+
+  async productUpsellEmail(
+    userId: string,
+    email: string,
+    upsellId: string,
+    checkoutId: string,
+    checkoutUrl: string,
+    emailServiceProvider: EmailServiceProvider,
+  ) {
+    try {
+      const checkoutDetails = await this.amp.productUpsellEmailData(
+        upsellId,
+        checkoutId,
+      );
+
+      const productsHTML: string[] = checkoutDetails[0].items.map(
+        (lineItem) => {
+          const html = `
+        <div class="product">
+                        <div><img src="${lineItem.images[0].src}" height="60" width="60"></div>
+                        <div class="productDetails">
+                            <div style="margin:auto">${lineItem.title} &nbsp;&nbsp; x&nbsp;&nbsp; ${lineItem.quantity}</div>
+                            <div style="margin:auto;margin-left:24px">${lineItem.price}</div>
+                        </div>
+                    </div>
+                    `;
+          return html;
+        },
+      );
+
+      const emailMessageData: EmailTransactionalMessageData = {
+        Recipients: {
+          To: [email],
+        },
+        Content: {
+          Subject: 'Slope Style Upgrade: Shred the Gnar with Our Fresh Boards!',
+          Merge: {
+            checkoutLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/upsell-email/${upsellId}?checkoutId=${encodeURIComponent(
+              checkoutId,
+            )}`,
+            globalCheckoutId: checkoutId,
+            recommendationLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/recommendation-email/${upsellId}`,
+            updateLineItemLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/upsell-email/update-line-item`,
+            addLineItemLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/upsell-email/add-line-item`,
+            removeLineItemLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/upsell-email/remove-line-item`,
+            applyDiscountLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/upsell-email/apply-discount`,
+            removeDiscountLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/upsell-email/remove-discount`,
+            abandonedCheckoutURL: checkoutUrl,
+          },
+          Body: [
+            {
+              ContentType: 'AMP',
+              Content: upsellEmailTemplate,
+            },
+            {
+              ContentType: 'HTML',
+              Content: upsellFallbackTemplate.replace(
+                '{{products}}',
+                productsHTML.join('\n'),
+              ),
+            },
+          ],
+        },
+      };
+
+      const emailService = this.email.createEmailService(emailServiceProvider);
+      await emailService.sendTransactionalEmail(userId, emailMessageData);
+
+      return {
+        data: {},
+        message: 'SUCCESS',
+        statusCode: 200,
+      };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Checkout email');
     }
   }
 }

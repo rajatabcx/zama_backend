@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseIntPipe,
   Post,
   Query,
   UseInterceptors,
@@ -16,6 +17,7 @@ import {
   AddLineItemFromUpsellDTO,
   ApplyDiscountCodeFromCheckoutDTO,
   ApplyDiscountCodeFromUpsellDTO,
+  CollectReviewDTO,
   RemoveDiscountCodeFromCheckoutDTO,
   RemoveDiscountCodeFromUpsellDTO,
   RemoveLineItemFromCheckoutDTO,
@@ -137,5 +139,17 @@ export class AmpController {
   ) {
     console.log(data);
     return this.ampService.removeDiscountCodeFromUpsellEmail(data);
+  }
+
+  // product upsell options
+  @Get('/shopify/review-email/:orderId')
+  reviewEmailData(@Param('orderId', ParseIntPipe) orderId: number) {
+    return this.ampService.reviewEmailData(orderId);
+  }
+
+  @Post('/shopify/review-email/collect-review')
+  @UseInterceptors(FileInterceptor('file'))
+  collectReview(@Body() data: CollectReviewDTO) {
+    return this.ampService.collectReview(data);
   }
 }

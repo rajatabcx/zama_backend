@@ -11,12 +11,13 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { SelectedProducts } from 'src/shopify/type';
 import { createStorefrontApiClient } from '@shopify/storefront-api-client';
 import { Configuration } from '@elasticemail/elasticemail-client-ts-axios';
+import { EmailServiceProvider } from '@prisma/client';
 
 @Injectable()
 export class CommonService {
   constructor(private config: ConfigService, private prisma: PrismaService) {}
 
-  shopifyScopes: string[] = [
+  private shopifyScopes: string[] = [
     'read_product_listings',
     'read_orders',
     'read_products',
@@ -25,6 +26,10 @@ export class CommonService {
     'write_checkouts',
     'unauthenticated_write_checkouts',
   ];
+
+  getShopifyScopes() {
+    return this.shopifyScopes;
+  }
 
   hashData(password: string) {
     return argon2.hash(password);
@@ -59,6 +64,7 @@ export class CommonService {
     const token = bufferValue.toString('base64');
     return token;
   }
+
   shopifyObject(shopName: string, accessToken: string) {
     const shopify = new Shopify({
       shopName,
@@ -113,6 +119,7 @@ export class CommonService {
         discountCode: true,
       },
     });
+
     if (!shopifyStore) {
       return { connected: false };
     }
@@ -171,29 +178,33 @@ export class CommonService {
   }
 
   async emailConfig(userId: string) {
-    const emailSetting = await this.prisma.emailSettings.findUnique({
+    const emailSetting = await this.prisma.emailSettings.findFirst({
       where: {
         userId,
+        enabled: true,
       },
       select: {
-        elasticEmailApiKey: true,
+        apiKey: true,
         fromEmail: true,
+        emailServiceProvider: true,
       },
     });
     if (!emailSetting) {
-      throw new BadRequestException(
-        'Please add elastic email api key to continue',
-      );
+      throw new BadRequestException('Please add email api key to continue');
     }
-    const config = new Configuration({
-      apiKey: emailSetting.elasticEmailApiKey,
-    });
+    if (
+      emailSetting.emailServiceProvider === EmailServiceProvider.ELASTICEMAIL
+    ) {
+      const config = new Configuration({
+        apiKey: emailSetting.apiKey,
+      });
 
-    return {
-      config,
-      fromEmail: emailSetting.fromEmail,
-      elasticEmailApiKey: emailSetting.elasticEmailApiKey,
-    };
+      return {
+        config,
+        fromEmail: emailSetting.fromEmail,
+        elasticEmailApiKey: emailSetting.apiKey,
+      };
+    }
   }
 
   myEmailConfig() {
