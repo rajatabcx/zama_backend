@@ -1,7 +1,14 @@
-import { EmailServiceProvider, ReviewPlatformName } from '@prisma/client';
+import {
+  EmailServiceProvider,
+  ReviewPlatformName,
+  SMSPlatformName,
+} from '@prisma/client';
 import { EcommerecePlatform } from 'src/enum';
 
 export type Integration = Record<
-  EmailServiceProvider | ReviewPlatformName | EcommerecePlatform,
+  | EmailServiceProvider
+  | ReviewPlatformName
+  | EcommerecePlatform
+  | SMSPlatformName,
   boolean
 >;

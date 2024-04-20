@@ -989,6 +989,7 @@ export class AmpService {
             name: true,
           },
         },
+        reviewSubmittedFor: true,
       },
     });
     if (!checkout) {
@@ -1005,6 +1006,8 @@ export class AmpService {
         return shopify.product.get(lineItem.product_id);
       });
 
+      const reviewSubmittedFor = checkout.reviewSubmittedFor.map(Number);
+
       const products = await Promise.all(productPromises);
       const modifiedProducts = products.map((product) => ({
         productId: product.id,
@@ -1014,6 +1017,7 @@ export class AmpService {
         imgAlt: product.image.alt,
         customerName: `${orderDetails.customer.first_name} ${orderDetails.customer.last_name}`,
         customerEmail: orderDetails.contact_email,
+        reviewSubmitted: reviewSubmittedFor.includes(product.id),
       }));
       return [
         { items: modifiedProducts, orderCreatedAt: orderDetails.created_at },
@@ -1078,6 +1082,18 @@ export class AmpService {
         shopName: checkout.shopifyStore.name,
         productName: payload.productName,
       });
+
+      await this.prisma.checkout.update({
+        where: {
+          shopifyOrderId: orderId,
+        },
+        data: {
+          reviewSubmittedFor: {
+            push: payload.productId,
+          },
+        },
+      });
+
       // Todo: add  the product is the the database if review is already collected
       return { data: 'Added review for the product successfully' };
     } catch (err) {

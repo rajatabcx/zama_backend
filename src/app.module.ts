@@ -20,6 +20,9 @@ import { EmailModule } from './email/email.module';
 import { EmailConfigModule } from './email-config/email-config.module';
 import { ReviewPlatformModule } from './review-platform/review-platform.module';
 import { YotpoModule } from './yotpo/yotpo.module';
+import { SmsPlatformModule } from './sms-platform/sms-platform.module';
+import { PostscriptModule } from './postscript/postscript.module';
+import { AttentiveModule } from './attentive/attentive.module';
 
 @Module({
   imports: [
@@ -41,6 +44,9 @@ import { YotpoModule } from './yotpo/yotpo.module';
     EmailConfigModule,
     ReviewPlatformModule,
     YotpoModule,
+    SmsPlatformModule,
+    PostscriptModule,
+    AttentiveModule,
   ],
   controllers: [AppController],
   providers: [

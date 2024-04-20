@@ -28,6 +28,11 @@ enum ReviewPlatformName {
   YOTPO
 }
 
+enum SMSPlatformName {
+  POSTSCRIPT
+  ATTENTIVE
+}
+
 model User {
   id              String           @id @unique @default(uuid())
   name            String?
@@ -37,6 +42,7 @@ model User {
   shopifyStore    ShopifyStore?
   emailSettings   EmailSettings[]
   reviewPlatforms ReviewPlatform[]
+  smsPlatforms    SMSPlatform[]
   productUpsells  ProductUpsell[]
   integrations    Json?
   acceptedTNC     Boolean          @default(false)
@@ -137,4 +143,17 @@ model ReviewPlatform {
   updatedAt   DateTime           @updatedAt
 
   @@map("review_platforms")
+}
+
+model SMSPlatform {
+  id          String          @id @unique @default(uuid())
+  accessToken String
+  name        SMSPlatformName
+  enabled     Boolean
+  userId      String
+  user        User            @relation(fields: [userId], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@map("sms_platforms")
 }

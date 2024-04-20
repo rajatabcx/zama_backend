@@ -2692,7 +2692,7 @@ export const reviewTemplate = `
             <div class="interactive">
                 <div class="interactiveInner">
                     <div style="padding: 16px;border-bottom: 1px solid #ebebeb;">
-                        <h1 style="font-size: 20px;font-weight: 500;">Your Shopping Cart</h1>
+                        <h1 style="font-size: 20px;font-weight: 500;">Items you ordered</h1>
                     </div>
                     <div>
                         <amp-list id="checkout" class="ampListCheckout" layout="fixed-height" height="450"
@@ -2724,7 +2724,7 @@ export const reviewTemplate = `
                                                 style="flex-grow: 1; align-self: stretch;display: flex;flex-direction: column; width: 100%; justify-content: space-between;">
                                                 <div
                                                     style="display: flex; gap: 12px;align-items: center;margin-top: 16px;flex-direction: column;">
-                                                    <form method="post"
+                                                    <form [hidden]="{{reviewSubmitted}}" method="post"
                                                         action-xhr="{submitReviewLink}"
                                                         id="review_product_{{productId}}">
                                                         <div class="rating">
@@ -2782,7 +2782,16 @@ export const reviewTemplate = `
                                                             </p>
                                                         </div>
                                                     </form>
-
+                                                    <div [hidden]="!{{reviewSubmitted}}">
+                                                    <div style="display: flex; justify-content: center;">
+                                                        <amp-img
+                                                            src="https://pedhznquiyczmrlwdiqy.supabase.co/storage/v1/object/public/zama/assets/done.webp"
+                                                            height="100" width="100" layout=fixed alt="done">
+                                                    </div>
+                                                    <p style="font-size: 16px;margin-top: 8px;">Successfully
+                                                        submitted review
+                                                    </p>
+                                                </div>
 
                                                 </div>
                                             </div>
@@ -3168,6 +3177,56 @@ export const reviewPlatformIntegrationSuccessEmail = `
                 <div>
                     <h1 style="margin-bottom: 16px;">Hi {name}</h1>
                     <p style="margin-bottom: 8px;">You have successfully integrated {reviewPlatformName} review platform, for the next steps, go <a href="https://zama.agency/settings?index=2">here</a></p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+
+</html>
+`;
+
+export const smsPlatformIntegrationSuccessEmail = `
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .outerContainer {
+            display: flex;
+            justify-content: center;
+            background-color: #F5F5F5;
+            padding: 16px;
+        }
+
+        .container {
+            border-radius: 6px;
+            min-width: 400px;
+            max-width: 600px;
+            flex-grow: 1;
+            background-color: #fff;
+            margin:auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="outerContainer">
+        <div class="container">
+            <div style="padding:16px;">
+                <div>
+                    <h1 style="margin-bottom: 16px;">Hi {name}</h1>
+                    <p style="margin-bottom: 8px;">You have successfully integrated {smsPlatformName} review platform, for the next steps, go <a href="https://zama.agency/settings?index=2">here</a></p>
                 </div>
             </div>
         </div>
