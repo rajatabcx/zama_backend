@@ -106,4 +106,12 @@ export class UserController {
   ) {
     return this.userService.checkoutEmail(userId, checkoutId);
   }
+
+  @Post('/send-review-email/:checkoutId')
+  reviewEmail(
+    @UserId() userId: string,
+    @Param('checkoutId') checkoutId: string,
+  ) {
+    return this.userService.reviewEmail(userId, checkoutId);
+  }
 }

@@ -2138,6 +2138,745 @@ export const upsellFallbackTemplate = `
 </html>
 `;
 
+export const reviewTemplate = `
+<!doctype html>
+<html amp4email data-css-strict>
+
+<head>
+    <meta charset="utf-8">
+    <script async src="https://cdn.ampproject.org/v0.js"></script>
+    <script async custom-element="amp-list" src="https://cdn.ampproject.org/v0/amp-list-0.1.js"></script>
+    <script async custom-template="amp-mustache" src="https://cdn.ampproject.org/v0/amp-mustache-0.2.js"></script>
+    <script async custom-element="amp-bind" src="https://cdn.ampproject.org/v0/amp-bind-0.1.js"></script>
+    <script async custom-element="amp-carousel" src="https://cdn.ampproject.org/v0/amp-carousel-0.1.js"></script>
+    <script async custom-element="amp-form" src="https://cdn.ampproject.org/v0/amp-form-0.1.js"></script>
+    <style amp4email-boilerplate>
+        body {
+            visibility: hidden;
+        }
+    </style>
+
+    <style amp-custom>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        h1 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        p {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .outerContainer {
+            display: flex;
+            justify-content: center;
+            background-color: #F5F5F5;
+        }
+
+        .container {
+            border-radius: 6px;
+            min-width: 400px;
+            max-width: 600px;
+            flex-grow: 1;
+            background-color: #fff;
+        }
+
+        .product {
+            width: 200px;
+            align-self: stretch;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            padding-top: 16px;
+            padding-bottom: 16px;
+        }
+
+        .productImage {
+            object-fit: contain;
+            margin: 0;
+        }
+
+        .productDetails {
+            margin-top: 8px;
+        }
+
+        .productImages {
+            border-radius: 8px;
+        }
+
+        .actions {
+            margin-top: 16px;
+        }
+
+        .amp-carousel-button-prev,
+        .amp-carousel-button-next {
+            border-radius: 50%;
+            cursor: pointer;
+            outline: none;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 10px 16px;
+            border: 2px solid #aaabbb66;
+            outline: none;
+            border-radius: 8px;
+        }
+
+        .list-overflow {
+            background: rgb(255, 255, 255);
+            background: linear-gradient(to bottom, #ffffff00 0, #ffffffff 100%);
+            bottom: 0%;
+            width: 100%;
+            height: 80px;
+            z-index: 50;
+            justify-content: center;
+            align-items: end;
+        }
+
+        .btn {
+            height: 40px;
+            padding: 8px 16px;
+            border: 2px solid #000;
+            font-weight: 500;
+            background: transparent;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .btn.filled {
+            background-color: #000;
+            color: #fff;
+        }
+
+        .btn:hover {
+            background-color: #00000015;
+        }
+
+        .btn.filled:hover {
+            background-color: #fff;
+            color: #000;
+        }
+
+        .linkBtn {
+            padding: 0;
+            border: none;
+            text-decoration: underline;
+            color: #aaabbbff;
+            font-size: 12px;
+            font-weight: 400;
+            cursor: pointer;
+            height: auto;
+        }
+
+        .linkBtn:hover {
+            background-color: transparent;
+            color: #000;
+        }
+
+        a {
+            width: 100%;
+            text-align: center;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .quantityBtn {
+            height: 32px;
+            width: 32px;
+            border-radius: 50%;
+            border: 1px solid #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            background-color: transparent;
+            cursor: pointer;
+        }
+
+        .quantityBtn:hover {
+            background-color: #00000015;
+        }
+
+        .ampListRecmmendation>div>div>div {
+            display: flex;
+            gap: 16px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            position: relative;
+        }
+
+        .cartButtonIcon {
+            background: url('https://static.thenounproject.com/png/117629-200.png');
+            height: 24px;
+            width: 24px;
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+
+        .cartButtonIconLoader {
+            background: url("https://i.gifer.com/origin/34/34338d26023e5515f6cc8969aa027bca.gif");
+            height: 24px;
+            width: 24px;
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+
+        .lineItemOuter {
+            position: relative;
+
+        }
+
+        .lineItemLoader {
+            background-color: #00000050;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+
+        .lineItemLoaderHidden {
+            height: 0%;
+        }
+
+
+        .icon-close-white {
+            width: 24px;
+            height: 24px;
+            background-size: 24px 24px;
+            background-image: url(https://i.postimg.cc/mgZy82sq/icons8-close-48.png);
+            background-repeat: no-repeat;
+            display: inline-block
+        }
+
+        .interactive {
+            padding: 0px 16px;
+        }
+
+        .interactiveInner {
+            border-radius: 8px;
+            box-shadow: rgba(0, 0, 0, 0.1) 0px 3px 8px;
+            border: 1px solid #ebebeb;
+        }
+
+        .big-spinner {
+            position: absolute;
+            z-index: 20;
+            left: 0;
+            right: 0;
+            margin-left: auto;
+            margin-right: auto;
+            height: 0px;
+            width: 0px;
+            border-radius: 50%;
+            border: 6px solid #FF4B00;
+            border-top: 5px solid transparent;
+            background-color: transparent;
+        }
+
+        .btn-spinner {
+            height: 0px;
+            width: 0px;
+            border-radius: 50%;
+            border: 4px solid #FF4B00;
+            border-top: 4px solid transparent;
+            background-color: transparent;
+        }
+
+        .spinner-rotate {
+            opacity: 1;
+            transition: transform 100000s;
+            transform: rotate(100000000deg);
+            height: 20px;
+            width: 20px;
+        }
+
+        .big-spinner-rotate {
+            opacity: 1;
+            transition: transform 100000s;
+            transform: rotate(100000000deg);
+            height: 45px;
+            width: 45px;
+        }
+
+        .spinner-hide {
+            border: transparent;
+        }
+
+        .custom-option-list {
+            max-height: 200px;
+            position: absolute;
+            width: calc(100% - 2px);
+            padding: 0;
+            margin: 0;
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, .08), inset 0 0 0 1px rgba(0, 0, 0, .16);
+            border-radius: 8px;
+            z-index: 100;
+            padding: 8px;
+            margin-top: 4px;
+            margin-left: -2px;
+            overflow-y: scroll;
+        }
+
+        .custom-option {
+            background: url(https://pedhznquiyczmrlwdiqy.supabase.co/storage/v1/object/public/zama/assets/down-arrow.png) no-repeat right calc(calc(18px * 0.7) - 4px) center/1rem;
+            border-radius: 6px;
+            border: 1px solid #aaabbb66;
+            height: 40px;
+            font-size: 14px;
+            width: 100%;
+            margin: 1px;
+            color: #444444;
+            appearance: none
+        }
+
+        .custom-option:hover {
+            border: 1px solid #000;
+        }
+
+        .custom-option-selected {
+            border: 1px solid #000;
+
+        }
+
+
+        .custom-option-container {
+            height: 40px;
+            z-index: 99;
+            margin: 0;
+            cursor: pointer;
+            padding: 0 calc(18px * 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center
+        }
+
+        .custom-option-cell {
+            height: 34px;
+            padding: 2px 6px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background-color: transparent;
+        }
+
+        .custom-option-cell:hover {
+            background: rgba(0, 0, 0, .08);
+            border-radius: 4px
+        }
+
+        .item-option {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            width: 100%;
+            align-items: center;
+            margin: calc(calc(18px * 0.4) - 2px) 0;
+        }
+
+        .outside-label {
+            display: flex;
+            position: absolute;
+            top: 11px;
+            right: 0;
+            left: 8px;
+            box-sizing: border-box;
+            text-align: left;
+            font-size: 14px;
+            background-color: transparent;
+            z-index: 4;
+            transform-origin: left center;
+            transform: scale(.7) translate(0, -28px);
+            transition: transform .2s ease-in-out
+        }
+
+        .rating {
+            display: flex;
+            width: 100%;
+            justify-content: center;
+            overflow: hidden;
+            flex-direction: row-reverse;
+            position: relative;
+        }
+
+        .rating-0 {
+            filter: grayscale(100%);
+        }
+
+        .rating>input {
+            display: none;
+        }
+
+        .rating>label {
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            background-image: url("https://pedhznquiyczmrlwdiqy.supabase.co/storage/v1/object/public/zama/assets/star-gray.png");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 76%;
+        }
+
+        .rating>input:checked~label,
+        .rating>input:checked~label~label {
+            background-image: url("https://pedhznquiyczmrlwdiqy.supabase.co/storage/v1/object/public/zama/assets/star-yellow.png");
+        }
+
+
+        .rating>input:not(:checked)~label:hover,
+        .rating>input:not(:checked)~label:hover~label {
+            background-image: url("https://pedhznquiyczmrlwdiqy.supabase.co/storage/v1/object/public/zama/assets/star-dark-yellow.png");
+        }
+
+        textarea {
+            resize: none;
+        }
+
+        form.amp-form-submit-success>input,
+        form.amp-form-submit-success>textarea,
+        form.amp-form-submit-success>label,
+        form.amp-form-submit-success>button,
+        form.amp-form-submit-success>div {
+            display: none
+        }
+
+
+        @media (max-width:600px) {
+            .slides-mobile {
+                display: block;
+            }
+
+            .slides-desktop {
+                display: none;
+            }
+        }
+
+        @media (min-width:600px) {
+            .slides-desktop {
+                display: block;
+            }
+
+            .slides-mobile {
+                display: none;
+            }
+        }
+    </style>
+
+
+
+</head>
+
+<body>
+    <amp-state id="zamaState">
+        <script type="application/json">
+        {
+          "learnMoreOpen": false,
+          "reviewingId":0,
+          "rating":0
+        }
+      </script>
+    </amp-state>
+
+    <div class="banner">
+        <div style="border-radius: 8px; background-color: #F4F4F6; font-size: 14px;">
+            <div [hidden]="zamaState.learnMoreOpen" style="padding: 16px;">
+                <div style="display: flex; align-items: center; justify-content: flex-start;">
+                    <amp-img style="margin:-30px;" height="60" width="60" layout="fixed"
+                        src="https://s6.gifyu.com/images/S6r3u.gif"></amp-img>
+                    <div style="font-weight:300; margin: 0px 20px;">This is an
+                        interactive email</div>
+                    <div style="font-weight:500; margin-left:auto; cursor: pointer;" tabindex="1" role=""
+                        on="tap:AMP.setState({ zamaState: { learnMoreOpen: true } })">
+                        Learn More</div>
+                </div>
+            </div>
+            <div hidden="" [hidden]="!zamaState.learnMoreOpen" class="slides-desktop"
+                style="position:relative;padding: 16px;">
+                <div class="close-button"
+                    style="position: absolute;cursor:pointer; z-index: 10; background-color: rgba(0,0,0,.5); width: 32px; height: 32px; border-radius: 50%; top: 8px;right: 8px; display: flex; align-items: center; justify-content: center; "
+                    tabindex="1" role="" on="tap:AMP.setState({zamaState: {learnMoreOpen: false}})">
+                    <div class="icon-close-white"></div>
+                </div>
+                <div style="display: flex;align-items: center">
+                    <div
+                        style="padding: 12px;min-height:225px; min-width:300px;display: flex;flex-direction: column;justify-content: center;">
+                        <amp-img style="border-radius: 8px" layout="responsive" height="225" width="400"
+                            src="https://pedhznquiyczmrlwdiqy.supabase.co/storage/v1/object/sign/zama/assets/interactive.webp?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1cmwiOiJ6YW1hL2Fzc2V0cy9pbnRlcmFjdGl2ZS53ZWJwIiwiaWF0IjoxNzA5NjU5NTcxLCJleHAiOjIwMjUwMTk1NzF9.24mXPhbpmqYgx3IKVzD6JeqAI7aWUscYEbOLPMmq9ZE"></amp-img>
+                    </div>
+                    <div>
+                        <div style="padding: 12px;font-weight: 600; font-size: 24px; color: #444; text-align: left">
+                            This is an interactive email
+                        </div>
+                        <div style="padding: 12px; font-weight: 300; font-size: 16px; color: #444; text-align: left">
+                            You can now click on buttons, fill out forms, and more without leaving your inbox.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div hidden="" [hidden]="!zamaState.learnMoreOpen" class="slides-mobile"
+                style="position:relative;padding: 16px;">
+                <div class="close-button"
+                    style="position: absolute;cursor:pointer; z-index: 10; background-color: rgba(0,0,0,.5); width: 32px; height: 32px; border-radius: 50%; top: 8px;right: 8px; display: flex; align-items: center; justify-content: center; "
+                    tabindex="1" role="" on="tap:AMP.setState({zamaState: {learnMoreOpen: false}})">
+                    <div class="icon-close-white"></div>
+                </div>
+                <div style="flex-direction: column;display: flex;align-items: center;">
+                    <amp-img style="border-radius: 8px" height="225" width="400" layout="fixed"
+                        src="https://pedhznquiyczmrlwdiqy.supabase.co/storage/v1/object/sign/zama/assets/interactive.webp?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1cmwiOiJ6YW1hL2Fzc2V0cy9pbnRlcmFjdGl2ZS53ZWJwIiwiaWF0IjoxNzA5NjU5NTcxLCJleHAiOjIwMjUwMTk1NzF9.24mXPhbpmqYgx3IKVzD6JeqAI7aWUscYEbOLPMmq9ZE"></amp-img>
+                </div>
+                <div style="padding-top: 12px;font-weight: 600; font-size: 24px;text-align: center">
+                    This is an interactive email
+                </div>
+                <div style="padding: 12px 18px 18px 18px; font-weight: 300; font-size: 16px;text-align: center">
+                    You can now click on buttons, fill out forms, and more without leaving your inbox.
+                </div>
+            </div>
+        </div>
+        <div style="width: 100%; height:20px"></div>
+    </div>
+    <div class="outerContainer" style="padding: 16px;">
+        <div class="container">
+            <div style="padding: 16px;display: flex; justify-content: space-between;align-items: center;gap: 16px;">
+                <div style="width: 150px;">
+                    <amp-img
+                        src="https://pedhznquiyczmrlwdiqy.supabase.co/storage/v1/object/public/zama/assets/zama_full.png"
+                        height="38" width="112" layout="fixed"></amp-img>
+                </div>
+                <div style="display: flex;gap: 4px;flex-grow: 1;">
+
+                    <a href="http://zama-merchant.myshopify.com" style="font-size: 14px;" target="_blank"
+                        rel="noopener noreferrer">Shopify
+                        Shop</a>
+                    <a href="http://zama.agency" style="font-size: 14px;" target="_blank" rel="noopener noreferrer">Zama
+                        (Product)</a>
+                </div>
+            </div>
+            <div>
+                <amp-img
+                    src="https://pedhznquiyczmrlwdiqy.supabase.co/storage/v1/object/public/zama/assets/zama_banner.png"
+                    alt="zama_banner" layout="responsive" height="200" width="600"></amp-img>
+            </div>
+            <div style="padding:16px;">
+                <h1 style="font-size: 24px;margin-bottom: 24px;text-align: center;">
+                    Let us know what you think!!
+                </h1>
+                <p style="font-size: 14px;margin-bottom: 8px;">Hey there,</p>
+                <p style="font-size: 14px;margin-bottom: 8px;">Remember, feedback can refine products</p>
+                <p style="font-size: 14px;margin-bottom: 8px;">Each comment or suggestion carries the weight of shaping
+                    a better, more user-focused experience!</p>
+                <p style="font-size: 14px;margin-bottom: 8px;">Leave us a review</p>
+
+            </div>
+
+            <div class="interactive">
+                <div class="interactiveInner">
+                    <div style="padding: 16px;border-bottom: 1px solid #ebebeb;">
+                        <h1 style="font-size: 20px;font-weight: 500;">Your Shopping Cart</h1>
+                    </div>
+                    <div>
+                        <amp-list id="checkout" class="ampListCheckout" layout="fixed-height" height="450"
+                            binding="always"
+                            src="{reviewLink}"
+                            items=".">
+                            <template type="amp-mustache">
+                                {{#items}}
+                                <div class="lineItemOuter">
+                                    <div class="lineItem"
+                                        style="margin-bottom: 8px;border-bottom: 1px solid #aaabbb66; padding: 16px;">
+                                        <div style="margin-bottom: 16px;">
+                                            <h1 title="{{name}}" style="font-size: 16px;font-weight: 600;">
+                                                {{name}}</h1>
+                                            <p title="{{description}}"
+                                                style="font-size: 13px;font-weight: 400;margin-top: 4px;">
+                                                {{{description}}}</p>
+                                        </div>
+                                        <div
+                                            style="display: flex;align-items: center;justify-content: space-between;gap: 16px;">
+                                            <div class="img" style="width: 250px;">
+                                                <amp-carousel height="200" layout="fixed-height" type="slides"
+                                                    role="region" aria-label="Basic usage carousel">
+                                                    <amp-img src="{{img}}" layout="fill" class="productImage"
+                                                        alt="{{imgAlt}}"></amp-img>
+                                                </amp-carousel>
+                                            </div>
+                                            <div
+                                                style="flex-grow: 1; align-self: stretch;display: flex;flex-direction: column; width: 100%; justify-content: space-between;">
+                                                <div
+                                                    style="display: flex; gap: 12px;align-items: center;margin-top: 16px;flex-direction: column;">
+                                                    <form method="post"
+                                                        action-xhr="{submitReviewLink}"
+                                                        id="review_product_{{productId}}">
+                                                        <div class="rating">
+                                                            <input type="radio" name="rating"
+                                                                id="{{productId}}-rating-5"
+                                                                value="{{productId}}-rating-5">
+                                                            <label for="{{productId}}-rating-5"></label>
+                                                            <input type="radio" name="rating"
+                                                                id="{{productId}}-rating-4"
+                                                                value="{{productId}}-rating-4">
+                                                            <label for="{{productId}}-rating-4"></label>
+                                                            <input type="radio" name="rating"
+                                                                id="{{productId}}-rating-3"
+                                                                value="{{productId}}-rating-3">
+                                                            <label for="{{productId}}-rating-3"></label>
+                                                            <input type="radio" name="rating"
+                                                                id="{{productId}}-rating-2"
+                                                                value="{{productId}}-rating-2">
+                                                            <label for="{{productId}}-rating-2"></label>
+                                                            <input type="radio" name="rating"
+                                                                id="{{productId}}-rating-1"
+                                                                value="{{productId}}-rating-1">
+                                                            <label for="{{productId}}-rating-1"></label>
+                                                        </div>
+                                                        <input type="text" name="productId" value="{{productId}}"
+                                                            placeholder="Product Id" hidden />
+                                                        <input type="text" name="customerName" value="{{customerName}}"
+                                                            placeholder="Customer Name" hidden />
+                                                        <input type="text" name="customerEmail"
+                                                            value="{{customerEmail}}" placeholder="Customer Email"
+                                                            hidden />
+                                                            <input type="text" name="productName"
+                                                            value="{{name}}" placeholder="Product Name"
+                                                            hidden />
+                                                        <input type="text" name="reviewTitle" placeholder="Review Title"
+                                                            required style="margin-top: 4px;margin-bottom: 4px;" />
+                                                        <textarea name="reviewDescription" rows="2"
+                                                            placeholder="Review Description" required></textarea>
+
+                                                        <button type="submit" class="btn"
+                                                            style="width: 100%; justify-content: center; margin-top: 8px;">Submit</button>
+                                                        <div submit-success>
+                                                            <div style="display: flex; justify-content: center;">
+                                                                <amp-img
+                                                                    src="https://pedhznquiyczmrlwdiqy.supabase.co/storage/v1/object/public/zama/assets/done.webp"
+                                                                    height="100" width="100" layout=fixed alt="done">
+                                                            </div>
+                                                            <p style="font-size: 16px;margin-top: 8px;">Successfully
+                                                                submitted review
+                                                            </p>
+                                                        </div>
+                                                        <div submit-error>
+                                                            <p style="color:red;font-size: 16px;margin-top: 8px;">
+                                                                *Something went wrong
+                                                            </p>
+                                                        </div>
+                                                    </form>
+
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {{/items}}
+                            </template>
+                            <div overflow class="list-overflow" style="display: flex;padding-bottom: 8px;">
+                                <h1 style="font-size: 18;font-weight: 600;">
+                                    See more
+                                </h1>
+                                <div
+                                    style="background-image: url('https://pedhznquiyczmrlwdiqy.supabase.co/storage/v1/object/public/zama/assets/chevron-down.png');height: 24px;width: 24px;background-size: 24px 24px;background-repeat: no-repeat;">
+                                </div>
+                            </div>
+                        </amp-list>
+                    </div>
+                    <!-- all the products and api -->
+                </div>
+            </div>
+            <div style="height: 2px;width: 100%;margin: 40px 0px;padding: 0px 16px;">
+                <div style="background-color: #00000015;height: 100%;width: 100%;"></div>
+            </div>
+
+            <div style="display: flex;flex-direction: column;align-items: center;padding-bottom: 32px;">
+                <amp-img
+                    src="https://pedhznquiyczmrlwdiqy.supabase.co/storage/v1/object/public/zama/assets/zama_full.png"
+                    alt="zama full" width="150" height="51" layout="fixed"></amp-img>
+                <p style="font-size: 14px;margin-top: 8px;">Boost conversions with an engaging inbox experience</p>
+                <p style="font-size: 14px;margin-top: 24px;">2024 | All Rights Reserved</p>
+                <p style="font-size: 14px;margin-top: 8px;">Built with ❤️ By <a href="https://twitter.com/hyvip_ai"
+                        target="_blank" rel="noopener noreferrer">Rajat Mondal</a></p>
+            </div>
+
+        </div>
+    </div>
+</body>
+
+</html>
+
+`;
+
+export const reviewFallbackTemplate = `
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .outerContainer {
+            display: flex;
+            justify-content: center;
+            background-color: #F5F5F5;
+            padding: 16px;
+        }
+
+        .container {
+            border-radius: 6px;
+            min-width: 400px;
+            max-width: 600px;
+            flex-grow: 1;
+            background-color: #fff;
+            margin:auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="outerContainer">
+        <div class="container">
+            <div style="padding:16px;">
+                <div>
+                    <h1 style="margin-bottom: 16px;">Hi</h1>
+                    <p style="margin-bottom: 8px;">Hi, You have bough some things {dayDifference} days ago, from zama, please leave a review</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+
+</html>
+    
+`;
+
 export const welcomeEmail = `
 <!DOCTYPE html>
 <html lang="en">
@@ -2378,7 +3117,57 @@ export const emailIntegrationSuccessEmail = `
             <div style="padding:16px;">
                 <div>
                     <h1 style="margin-bottom: 16px;">Hi {name}</h1>
-                    <p style="margin-bottom: 8px;">You have successfully integrated elastic email, for the next steps, go <a href="https://zama.agency/settings?index=2">here</a></p>
+                    <p style="margin-bottom: 8px;">You have successfully integrated {emailServiceProvider}, for the next steps, go <a href="https://zama.agency/settings?index=3">here</a></p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+
+</html>
+`;
+
+export const reviewPlatformIntegrationSuccessEmail = `
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .outerContainer {
+            display: flex;
+            justify-content: center;
+            background-color: #F5F5F5;
+            padding: 16px;
+        }
+
+        .container {
+            border-radius: 6px;
+            min-width: 400px;
+            max-width: 600px;
+            flex-grow: 1;
+            background-color: #fff;
+            margin:auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="outerContainer">
+        <div class="container">
+            <div style="padding:16px;">
+                <div>
+                    <h1 style="margin-bottom: 16px;">Hi {name}</h1>
+                    <p style="margin-bottom: 8px;">You have successfully integrated {reviewPlatformName} review platform, for the next steps, go <a href="https://zama.agency/settings?index=2">here</a></p>
                 </div>
             </div>
         </div>

@@ -147,9 +147,12 @@ export class AmpController {
     return this.ampService.reviewEmailData(orderId);
   }
 
-  @Post('/shopify/review-email/collect-review')
+  @Post('/shopify/review-email/:orderId/collect-review')
   @UseInterceptors(FileInterceptor('file'))
-  collectReview(@Body() data: CollectReviewDTO) {
-    return this.ampService.collectReview(data);
+  collectReview(
+    @Param('orderId', ParseIntPipe) orderId: number,
+    @Body() data: CollectReviewDTO,
+  ) {
+    return this.ampService.collectReview(orderId, data);
   }
 }

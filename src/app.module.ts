@@ -18,7 +18,8 @@ import { LandingModule } from './landing/landing.module';
 import { JudgeMeModule } from './judge-me/judge-me.module';
 import { EmailModule } from './email/email.module';
 import { EmailConfigModule } from './email-config/email-config.module';
-import { ReviewsModule } from './reviews/reviews.module';
+import { ReviewPlatformModule } from './review-platform/review-platform.module';
+import { YotpoModule } from './yotpo/yotpo.module';
 
 @Module({
   imports: [
@@ -38,7 +39,8 @@ import { ReviewsModule } from './reviews/reviews.module';
     JudgeMeModule,
     EmailModule,
     EmailConfigModule,
-    ReviewsModule,
+    ReviewPlatformModule,
+    YotpoModule,
   ],
   controllers: [AppController],
   providers: [

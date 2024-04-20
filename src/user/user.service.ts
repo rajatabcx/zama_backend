@@ -14,6 +14,8 @@ import { EmailTransactionalMessageData } from '@elasticemail/elasticemail-client
 import {
   checkoutFallbackTemplate,
   checkoutTemplate,
+  reviewFallbackTemplate,
+  reviewTemplate,
   upsellEmailTemplate,
   upsellFallbackTemplate,
 } from 'src/data';
@@ -625,6 +627,113 @@ export class UserService {
 
       const emailService = this.email.createEmailService(emailServiceProvider);
       await emailService.sendTransactionalEmail(userId, emailMessageData);
+
+      return {
+        data: {},
+        message: 'SUCCESS',
+        statusCode: 200,
+      };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Checkout email');
+    }
+  }
+
+  async reviewEmail(userId: string, checkoutId: string) {
+    const checkout = await this.prisma.checkout.findUnique({
+      where: {
+        id: checkoutId,
+      },
+      select: {
+        email: true,
+        shopifyOrderId: true,
+        shopifyStore: {
+          select: {
+            user: {
+              select: {
+                emailSettings: {
+                  where: {
+                    enabled: true,
+                  },
+                  select: {
+                    emailServiceProvider: true,
+                  },
+                  take: 1,
+                },
+                reviewPlatforms: {
+                  where: {
+                    enabled: true,
+                  },
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!checkout.shopifyStore.user.reviewPlatforms.length)
+      throw new BadRequestException(
+        'Please connect a review platform in order to send email',
+      );
+
+    try {
+      const orderDetails = await this.amp.reviewEmailData(
+        Number(checkout.shopifyOrderId),
+      );
+
+      const timeDifference = Math.abs(
+        new Date().getTime() -
+          new Date(orderDetails[0].orderCreatedAt).getTime(),
+      );
+      const diffDays = Math.ceil(timeDifference / (1000 * 3600 * 24));
+
+      const emailMessageData: EmailTransactionalMessageData = {
+        Recipients: {
+          To: [checkout.email],
+        },
+        Content: {
+          Subject:
+            'Hit the Powder and Share Your Thrills: Review Your Recent Snowboard Purchase!',
+          Merge: {
+            reviewLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/review-email/${checkout.shopifyOrderId}`,
+            submitReviewLink: `${this.config.get(
+              'BACKEND_URL',
+            )}/amp/shopify/review-email/${
+              checkout.shopifyOrderId
+            }/collect-review`,
+            dayDifference: `${diffDays}`,
+          },
+          Body: [
+            {
+              ContentType: 'AMP',
+              Content: reviewTemplate,
+            },
+            {
+              ContentType: 'HTML',
+              Content: reviewFallbackTemplate,
+            },
+          ],
+        },
+      };
+
+      const emailService = this.email.createEmailService(
+        checkout.shopifyStore.user.emailSettings[0].emailServiceProvider,
+      );
+      await emailService.sendTransactionalEmail(userId, emailMessageData);
+
+      await this.prisma.checkout.update({
+        where: {
+          id: checkoutId,
+        },
+        data: {
+          reviewEmailSent: true,
+        },
+      });
 
       return {
         data: {},

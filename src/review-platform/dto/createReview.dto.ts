@@ -7,19 +7,31 @@ export class CreateReviewDTO {
 
   @IsString()
   @IsNotEmpty()
-  name: string;
+  reviewerName: string;
 
   @IsString()
   @IsNotEmpty()
-  email: string;
+  productName: string;
 
   @IsString()
   @IsNotEmpty()
-  title: string;
+  reviewerEmail: string;
 
   @IsString()
   @IsNotEmpty()
-  body: string;
+  reviewTitle: string;
+
+  @IsString()
+  @IsNotEmpty()
+  reviewDescription: string;
+
+  @IsString()
+  @IsNotEmpty()
+  accessToken: string;
+
+  @IsString()
+  @IsNotEmpty()
+  shopName: string;
 
   @IsNumber()
   @IsNotEmpty()
@@ -29,5 +41,5 @@ export class CreateReviewDTO {
 
   @IsString()
   @IsNotEmpty()
-  id: number;
+  productId: number;
 }

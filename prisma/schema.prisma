@@ -100,6 +100,7 @@ model Checkout {
   email                       String?
   checkoutEmailSent           Boolean      @default(false)
   reviewEmailSent             Boolean      @default(false)
+  reviewSubmittedFor          BigInt[]
   shopifyStoreId              String
   shopifyStore                ShopifyStore @relation(fields: [shopifyStoreId], references: [id])
   createdAt                   DateTime     @default(now())
@@ -130,7 +131,7 @@ model ReviewPlatform {
   accessToken String
   name        ReviewPlatformName
   enabled     Boolean
-  userId      String             @unique
+  userId      String
   user        User               @relation(fields: [userId], references: [id])
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt

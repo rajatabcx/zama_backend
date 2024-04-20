@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 
 export class CollectReviewDTO {
   @IsString()
@@ -16,4 +16,17 @@ export class CollectReviewDTO {
   @IsString()
   @IsNotEmpty()
   reviewDescription: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsEmail()
+  customerEmail: string;
+
+  @IsString()
+  @IsNotEmpty()
+  customerName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  productName: string;
 }

@@ -83,7 +83,7 @@ export class EmailConfigService {
 
       const updatedIntegrations: Integration = {
         ...integrations,
-        elasticEmail: true,
+        [data.emailServiceProvider]: true,
       };
 
       const userPromise = this.prisma.user.update({
@@ -112,6 +112,7 @@ export class EmailConfigService {
           ],
           Merge: {
             name: emailSettings.user.name,
+            emailServiceProvider: data.emailServiceProvider,
           },
         },
       };

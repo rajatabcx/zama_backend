@@ -17,6 +17,7 @@ import {
 } from './dto';
 import { SelectedProducts } from 'src/shopify/type';
 import { Intent } from 'src/enum';
+import { ReviewPlatformService } from 'src/review-platform/review-platform.service';
 
 @Injectable()
 export class AmpService {
@@ -24,6 +25,7 @@ export class AmpService {
     private shopifyGraphql: ShopifyGraphqlService,
     private common: CommonService,
     private prisma: PrismaService,
+    private reviewService: ReviewPlatformService,
   ) {}
 
   // checkout email options
@@ -1010,25 +1012,76 @@ export class AmpService {
         description: product.body_html,
         img: product.image.src,
         imgAlt: product.image.alt,
+        customerName: `${orderDetails.customer.first_name} ${orderDetails.customer.last_name}`,
+        customerEmail: orderDetails.contact_email,
       }));
-      const reviewEmailData = {
-        items: modifiedProducts,
-      };
-      return [{ items: modifiedProducts }];
+      return [
+        { items: modifiedProducts, orderCreatedAt: orderDetails.created_at },
+      ];
     } catch (err) {
       this.common.generateErrorResponse(err, 'Shopify');
     }
   }
 
-  async collectReview(data: CollectReviewDTO) {
-    const ratingArr = data.rating.split('-');
+  async collectReview(orderId: number, data: CollectReviewDTO) {
+    const checkout = await this.prisma.checkout.findFirst({
+      where: {
+        shopifyOrderId: orderId,
+      },
+      select: {
+        shopifyStore: {
+          select: {
+            name: true,
+            user: {
+              select: {
+                reviewPlatforms: {
+                  where: {
+                    enabled: true,
+                  },
+                  select: {
+                    accessToken: true,
+                    name: true,
+                  },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
+      },
+    });
 
-    const payload = {
-      ...data,
-      rating: Number(ratingArr[ratingArr.length - 1]),
-      productId: Number(data.productId),
-    };
-    console.log(payload);
-    return { data: 'SUCCESS' };
+    if (!checkout) {
+      throw new BadRequestException('Shop Not Found');
+    }
+    try {
+      const ratingArr = data.rating.split('-');
+      const payload = {
+        ...data,
+        rating: Number(ratingArr[ratingArr.length - 1]),
+        productId: Number(data.productId),
+      };
+
+      const reviewPlatform = this.reviewService.createReviewPlatformService(
+        checkout.shopifyStore.user.reviewPlatforms[0].name,
+      );
+
+      await reviewPlatform.createReview({
+        productId: payload.productId,
+        reviewerName: payload.customerName,
+        reviewerEmail: payload.customerEmail,
+        platform: 'shopify',
+        rating: payload.rating,
+        reviewTitle: payload.reviewTitle,
+        reviewDescription: payload.reviewDescription,
+        accessToken: checkout.shopifyStore.user.reviewPlatforms[0].accessToken,
+        shopName: checkout.shopifyStore.name,
+        productName: payload.productName,
+      });
+      // Todo: add  the product is the the database if review is already collected
+      return { data: 'Added review for the product successfully' };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Review');
+    }
   }
 }

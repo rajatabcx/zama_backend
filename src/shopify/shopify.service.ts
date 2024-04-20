@@ -17,6 +17,7 @@ import { EmailTransactionalMessageData } from '@elasticemail/elasticemail-client
 import { shopifyIntegrationSuccessEmail } from 'src/data';
 import { EmailService } from 'src/email/email.service';
 import { Integration } from 'src/interfaces';
+import { EcommerecePlatform } from 'src/enum';
 
 @Injectable()
 export class ShopifyService {
@@ -110,7 +111,7 @@ export class ShopifyService {
 
       const updatedIntegration: Integration = {
         ...integrations,
-        shopify: true,
+        [EcommerecePlatform.SHOPIFY]: true,
       };
 
       const userPromise = this.prisma.user.update({
