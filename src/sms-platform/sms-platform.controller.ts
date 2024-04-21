@@ -8,20 +8,20 @@ export class SmsPlatformController {
   constructor(private readonly smsPlatformService: SmsPlatformService) {}
 
   @Get('/')
-  reviewPlatforms(@UserId() userId: string) {
-    return this.smsPlatformService.reviewPlatforms(userId);
+  smsPlatforms(@UserId() userId: string) {
+    return this.smsPlatformService.smsPlatforms(userId);
   }
 
   @Post('/connect')
-  connectReviewPlatform(
+  connectSMSPlatform(
     @UserId() userId: string,
     @Body() data: ConnectSMSPlatformDTO,
   ) {
-    return this.smsPlatformService.connectReviewPlatform(userId, data);
+    return this.smsPlatformService.connectSMSPlatform(userId, data);
   }
 
   @Patch('/enable')
-  enableReviewPlatform(@Body() data: EnableSMSPlatformDTO) {
-    return this.smsPlatformService.enabledReviewPlatform(data);
+  enableSMSPlatform(@Body() data: EnableSMSPlatformDTO) {
+    return this.smsPlatformService.enabledSMSPlatform(data);
   }
 }

@@ -103,7 +103,7 @@ export class EmailConfigService {
           To: [emailSettings.user.email],
         },
         Content: {
-          Subject: 'Successfully integrated Elastic Email into Zama!!',
+          Subject: 'Successfully integrated Email Service Provider into Zama!!',
           Body: [
             {
               ContentType: 'HTML',

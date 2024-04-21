@@ -103,7 +103,7 @@ export class ReviewPlatformService {
           To: [reviewPlatform.user.email],
         },
         Content: {
-          Subject: 'Successfully integrated Elastic Email into Zama!!',
+          Subject: 'Successfully integrated Review Platform into Zama!!',
           Body: [
             {
               ContentType: 'HTML',

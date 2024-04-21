@@ -19,13 +19,14 @@ export class SmsPlatformService {
     private postScriptService: PostscriptService,
     private attentiveService: AttentiveService,
   ) {}
-  async reviewPlatforms(userId: string) {
+
+  async smsPlatforms(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: {
         id: userId,
       },
       select: {
-        reviewPlatforms: {
+        smsPlatforms: {
           select: {
             name: true,
             enabled: true,
@@ -38,11 +39,11 @@ export class SmsPlatformService {
       },
     });
 
-    return { data: user.reviewPlatforms, statusCode: 200, message: 'SUCCESS' };
+    return { data: user.smsPlatforms, statusCode: 200, message: 'SUCCESS' };
   }
 
-  async connectReviewPlatform(userId: string, data: ConnectSMSPlatformDTO) {
-    const reviewPlatformsPromise = this.prisma.reviewPlatform.count({
+  async connectSMSPlatform(userId: string, data: ConnectSMSPlatformDTO) {
+    const smsPlatformsPromise = this.prisma.sMSPlatform.count({
       where: {
         userId,
       },
@@ -55,8 +56,8 @@ export class SmsPlatformService {
       },
     });
 
-    const [reviewPlatforms, userData] = await this.prisma.$transaction([
-      reviewPlatformsPromise,
+    const [smsPlatforms, userData] = await this.prisma.$transaction([
+      smsPlatformsPromise,
       userDataPromise,
     ]);
 
@@ -67,12 +68,12 @@ export class SmsPlatformService {
         [data.platformName]: true,
       };
 
-      const reviewPlatformPromise = this.prisma.sMSPlatform.create({
+      const smsPlatformPromise = this.prisma.sMSPlatform.create({
         data: {
           name: data.platformName,
           accessToken: data.accessToken,
           userId,
-          enabled: !reviewPlatforms,
+          enabled: !smsPlatforms,
         },
         select: {
           user: {
@@ -91,17 +92,17 @@ export class SmsPlatformService {
         },
       });
 
-      const [reviewPlatform] = await this.prisma.$transaction([
-        reviewPlatformPromise,
+      const [smsPlatform] = await this.prisma.$transaction([
+        smsPlatformPromise,
         userPromise,
       ]);
 
       const emailData: EmailTransactionalMessageData = {
         Recipients: {
-          To: [reviewPlatform.user.email],
+          To: [smsPlatform.user.email],
         },
         Content: {
-          Subject: 'Successfully integrated Elastic Email into Zama!!',
+          Subject: 'Successfully integrated SMS platform into Zama!!',
           Body: [
             {
               ContentType: 'HTML',
@@ -109,7 +110,7 @@ export class SmsPlatformService {
             },
           ],
           Merge: {
-            name: reviewPlatform.user.name,
+            name: smsPlatform.user.name,
             smsPlatformName: data.platformName,
           },
         },
@@ -120,7 +121,7 @@ export class SmsPlatformService {
     }
   }
 
-  async enabledReviewPlatform(data: EnableSMSPlatformDTO) {
+  async enabledSMSPlatform(data: EnableSMSPlatformDTO) {
     try {
       const disablePromise = this.prisma.sMSPlatform.updateMany({
         where: {
@@ -144,11 +145,11 @@ export class SmsPlatformService {
       await this.prisma.$transaction([disablePromise, enablePromise]);
       return {
         data: {},
-        message: 'Review platform enabled successfully',
+        message: 'SMS platform enabled successfully',
         statusCode: 200,
       };
     } catch (err) {
-      this.common.generateErrorResponse(err, 'Review');
+      this.common.generateErrorResponse(err, 'SMS');
     }
   }
 
