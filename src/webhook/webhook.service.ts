@@ -276,7 +276,7 @@ export class WebhookService {
       };
 
       const regex = /\/([^\/?#]+)\?/;
-      const match = regex.exec(storefrontCheckoutData.id);
+      const match = regex.exec(resData.checkoutCreate.checkout.id);
       const storefrontCheckoutToken = match && match[1]; // Extracted value
 
       console.log('creating record in database');
