@@ -2599,8 +2599,7 @@ export const reviewTemplate = `
         <script type="application/json">
         {
           "learnMoreOpen": false,
-          "reviewingId":0,
-          "rating":0
+          "reviewingId":0
         }
       </script>
     </amp-state>
@@ -2771,8 +2770,16 @@ export const reviewTemplate = `
                                                         <textarea name="reviewDescription" rows="2"
                                                             placeholder="Review Description" required></textarea>
 
-                                                        <button type="submit" class="btn"
-                                                            style="width: 100%; justify-content: center; margin-top: 8px;">Submit</button>
+                                                            <button tabindex="1" role="" class="btn"
+                                                            style="width: 100%; justify-content: center; margin-top: 8px;"
+                                                            on="tap:AMP.setState({ zamaState: { reviewingId: {{productId}} } }), review_product_{{productId}}.submit">
+                                                            <p
+                                                                [text]="(zamaState.reviewingId == {{productId}} ? 'Submitting Review' : 'Submit')">
+                                                                Submit</p>
+                                                            <div
+                                                                [class]="'btn-spinner ' + (zamaState.reviewingId == {{productId}} ? 'spinner-rotate' : 'spinner-hide')">
+                                                            </div>
+                                                        </button>
                                                         <div submit-success>
                                                             <div style="display: flex; justify-content: center;">
                                                                 <amp-img
