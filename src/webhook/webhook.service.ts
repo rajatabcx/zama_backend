@@ -275,10 +275,15 @@ export class WebhookService {
         webUrl: resData.checkoutCreate.checkout.webUrl,
       };
 
+      const regex = /\/([^\/?#]+)\?/;
+      const match = regex.exec(storefrontCheckoutData.id);
+      const storefrontCheckoutToken = match && match[1]; // Extracted value
+
       console.log('creating record in database');
       await this.prisma.checkout.create({
         data: {
           shopifyAdminCheckoutToken: data.token,
+          shopifyStorefrontCheckoutToken: storefrontCheckoutToken,
           shopifyAbandonedCheckoutURL: storefrontCheckoutData.webUrl,
           shopifyStorefrontCheckoutId: storefrontCheckoutData.id,
           shopifyStore: {
@@ -409,7 +414,7 @@ export class WebhookService {
 
     const checkout = await this.prisma.checkout.findUnique({
       where: {
-        shopifyAdminCheckoutToken: data.checkout_token,
+        shopifyStorefrontCheckoutToken: data.checkout_token,
       },
       select: {
         orderPlaced: true,
@@ -429,7 +434,7 @@ export class WebhookService {
     try {
       await this.prisma.checkout.update({
         where: {
-          shopifyAdminCheckoutToken: data.checkout_token,
+          shopifyStorefrontCheckoutToken: data.checkout_token,
         },
         data: {
           orderPlaced: true,
@@ -449,7 +454,7 @@ export class WebhookService {
 
     const checkout = await this.prisma.checkout.findUnique({
       where: {
-        shopifyAdminCheckoutToken: data.checkout_token,
+        shopifyStorefrontCheckoutToken: data.checkout_token,
       },
       select: {
         orderFulFilled: true,
@@ -475,7 +480,7 @@ export class WebhookService {
     try {
       await this.prisma.checkout.update({
         where: {
-          shopifyAdminCheckoutToken: data.checkout_token,
+          shopifyStorefrontCheckoutToken: data.checkout_token,
         },
         data: {
           orderFulFilled: !!data.fulfillment_status,
