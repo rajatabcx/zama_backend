@@ -206,7 +206,9 @@ export class WebhookService {
   }
 
   async shopifyCheckoutCreated(shopName: string, data: any) {
-    console.log(`\n\ncheckout created from ${data.landing_site}`);
+    console.log(
+      `\Checkout created from ${data.landing_site} with checkout token ${data.token}`,
+    );
 
     if (data.landing_site.includes('/api/2023-10/graphql.json')) {
       console.log('Ignoring checkout creation as its coming from api');
@@ -273,11 +275,6 @@ export class WebhookService {
         webUrl: resData.checkoutCreate.checkout.webUrl,
       };
 
-      const storefrontUrl = new URL(storefrontCheckoutData.webUrl);
-      const storeFrontToken = storefrontUrl.pathname
-        .split('checkouts/')[1]
-        .replace('/recover', '');
-
       console.log('creating record in database');
       await this.prisma.checkout.create({
         data: {
@@ -303,7 +300,9 @@ export class WebhookService {
   }
 
   async shopifyCheckoutUpdated(shopName: string, data: any) {
-    console.log('update');
+    console.log(
+      `\checkout updated from ${data.landing_site} with checkout token ${data.token}`,
+    );
     //for address check if there is customer available then attach the checkout with customer or else update the shipping address with billing_address
     // billing adress
     // billing_address: {
