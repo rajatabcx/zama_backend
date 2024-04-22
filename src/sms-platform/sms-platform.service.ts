@@ -153,6 +153,30 @@ export class SmsPlatformService {
     }
   }
 
+  async smsPlatformKeywords(userId: string) {
+    const smsPlatform = await this.prisma.sMSPlatform.findFirst({
+      where: {
+        enabled: true,
+        userId,
+      },
+      select: {
+        accessToken: true,
+        name: true,
+      },
+    });
+
+    if (smsPlatform.name !== SMSPlatformName.POSTSCRIPT)
+      throw new Error('You cant get keyword for postscript');
+    try {
+      const smsService = this.createSMSPlatformService(smsPlatform.name);
+      const { data } = await smsService.getKeywords(smsPlatform.accessToken);
+
+      return { data, statusCOde: 200, message: 'SUCCESS' };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'SMS');
+    }
+  }
+
   createSMSPlatformService(smsPlatform: SMSPlatformName): SMSServiceInterface {
     switch (smsPlatform) {
       case SMSPlatformName.POSTSCRIPT:

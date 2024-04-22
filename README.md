@@ -38,3 +38,13 @@ survey
 POWR
 
 the integrations object should a json in user details and remove the table
+
+
+
+
+
+
+--------------
+
+create a modal from where user should select the list to send out the email,
+if enabled platform is postscript fetch the keyword and make it required field to select, then send out the email for now

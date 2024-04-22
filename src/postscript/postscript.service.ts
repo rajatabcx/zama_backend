@@ -29,6 +29,17 @@ export class PostscriptService implements SMSServiceInterface {
       ),
     );
   }
+
+  getKeywords(accessToken: string): Promise<any> {
+    return firstValueFrom(
+      this.httpService.get(`https://api.postscript.io/api/v2/keywords`, {
+        headers: {
+          'X-Postscript-Shop-Token': accessToken,
+        },
+      }),
+    );
+    return null;
+  }
 }
 
 // {

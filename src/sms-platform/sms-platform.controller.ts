@@ -12,6 +12,11 @@ export class SmsPlatformController {
     return this.smsPlatformService.smsPlatforms(userId);
   }
 
+  @Get('/keywords')
+  smsPlatformKeywords(@UserId() userId: string) {
+    return this.smsPlatformService.smsPlatformKeywords(userId);
+  }
+
   @Post('/connect')
   connectSMSPlatform(
     @UserId() userId: string,
