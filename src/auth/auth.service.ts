@@ -43,6 +43,7 @@ export class AuthService {
           email: data.email,
           password: passwordHash,
           acceptedTNC: data.acceptedTNC,
+          integrations: {},
         },
         select: {
           id: true,

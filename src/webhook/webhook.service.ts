@@ -400,7 +400,9 @@ export class WebhookService {
   }
 
   async shopifyOrderCreated(shopName: string, data: any) {
-    console.log(`\norder created from ${data.landing_site}`);
+    console.log(
+      `\norder created from ${data.landing_site} with checkout token ${data.checkout_token}`,
+    );
     if (data.landing_site.includes('/api/2023-10/graphql.json')) {
       console.log('Ignoring checkout creation as its coming from api');
       return {};
@@ -414,6 +416,11 @@ export class WebhookService {
         orderPlaced: true,
       },
     });
+
+    if (!checkout) {
+      console.log('Checkout not found ignoring');
+      return;
+    }
 
     if (checkout.orderPlaced) {
       console.log('Checkout already updated with order details');
