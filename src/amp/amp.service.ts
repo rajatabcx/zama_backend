@@ -7,6 +7,7 @@ import {
   AddLineItemFromUpsellDTO,
   ApplyDiscountCodeFromCheckoutDTO,
   ApplyDiscountCodeFromUpsellDTO,
+  CollectReviewDTO,
   RemoveDiscountCodeFromCheckoutDTO,
   RemoveDiscountCodeFromUpsellDTO,
   RemoveLineItemFromCheckoutDTO,
@@ -16,6 +17,7 @@ import {
 } from './dto';
 import { SelectedProducts } from 'src/shopify/type';
 import { Intent } from 'src/enum';
+import { ReviewPlatformService } from 'src/review-platform/review-platform.service';
 
 @Injectable()
 export class AmpService {
@@ -23,6 +25,7 @@ export class AmpService {
     private shopifyGraphql: ShopifyGraphqlService,
     private common: CommonService,
     private prisma: PrismaService,
+    private reviewService: ReviewPlatformService,
   ) {}
 
   // checkout email options
@@ -119,7 +122,6 @@ export class AmpService {
           },
         },
         orderFulFilled: true,
-        shopifyStoreFrontCheckoutToken: true,
         shopifyAdminCheckoutToken: true,
         shopifyStorefrontCheckoutId: true,
         shopifyAbandonedCheckoutURL: true,
@@ -249,7 +251,6 @@ export class AmpService {
           shopifyAdminCheckoutToken: true,
           shopifyStorefrontCheckoutId: true,
           shopifyAbandonedCheckoutURL: true,
-          shopifyStoreFrontCheckoutToken: true,
         },
       });
 
@@ -306,7 +307,6 @@ export class AmpService {
           shopifyAdminCheckoutToken: true,
           shopifyStorefrontCheckoutId: true,
           shopifyAbandonedCheckoutURL: true,
-          shopifyStoreFrontCheckoutToken: true,
         },
       });
 
@@ -351,7 +351,6 @@ export class AmpService {
           shopifyAdminCheckoutToken: true,
           shopifyStorefrontCheckoutId: true,
           shopifyAbandonedCheckoutURL: true,
-          shopifyStoreFrontCheckoutToken: true,
         },
       });
 
@@ -973,6 +972,132 @@ export class AmpService {
       };
     } catch (err) {
       this.common.generateErrorResponse(err, 'Checkout');
+    }
+  }
+
+  // review options
+
+  async reviewEmailData(orderId: number) {
+    const checkout = await this.prisma.checkout.findFirst({
+      where: {
+        shopifyOrderId: orderId,
+      },
+      select: {
+        shopifyStore: {
+          select: {
+            accessToken: true,
+            name: true,
+          },
+        },
+        reviewSubmittedFor: true,
+      },
+    });
+    if (!checkout) {
+      throw new BadRequestException('Shop Not Found');
+    }
+    try {
+      const shopify = this.common.shopifyObject(
+        checkout.shopifyStore.name,
+        checkout.shopifyStore.accessToken,
+      );
+
+      const orderDetails = await shopify.order.get(orderId);
+      const productPromises = orderDetails.line_items.map((lineItem) => {
+        return shopify.product.get(lineItem.product_id);
+      });
+
+      const reviewSubmittedFor = checkout.reviewSubmittedFor.map(Number);
+
+      const products = await Promise.all(productPromises);
+      const modifiedProducts = products.map((product) => ({
+        productId: product.id,
+        name: product.title,
+        description: product.body_html,
+        img: product.image.src,
+        imgAlt: product.image.alt,
+        customerName: `${orderDetails.customer.first_name} ${orderDetails.customer.last_name}`,
+        customerEmail: orderDetails.contact_email,
+        reviewSubmitted: reviewSubmittedFor.includes(product.id),
+      }));
+      return [
+        { items: modifiedProducts, orderCreatedAt: orderDetails.created_at },
+      ];
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Shopify');
+    }
+  }
+
+  async collectReview(orderId: number, data: CollectReviewDTO) {
+    const checkout = await this.prisma.checkout.findFirst({
+      where: {
+        shopifyOrderId: orderId,
+      },
+      select: {
+        shopifyStore: {
+          select: {
+            name: true,
+            user: {
+              select: {
+                reviewPlatforms: {
+                  where: {
+                    enabled: true,
+                  },
+                  select: {
+                    accessToken: true,
+                    name: true,
+                  },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!checkout) {
+      throw new BadRequestException('Shop Not Found');
+    }
+    try {
+      const ratingArr = data.rating.split('-');
+      const payload = {
+        ...data,
+        rating: Number(ratingArr[ratingArr.length - 1]),
+        productId: Number(data.productId),
+      };
+
+      const reviewPlatform = this.reviewService.createReviewPlatformService(
+        checkout.shopifyStore.user.reviewPlatforms[0].name,
+      );
+
+      await reviewPlatform.createReview({
+        productId: payload.productId,
+        reviewerName: payload.customerName,
+        reviewerEmail: payload.customerEmail,
+        platform: 'shopify',
+        rating: payload.rating,
+        reviewTitle: payload.reviewTitle,
+        reviewDescription: payload.reviewDescription,
+        accessToken: checkout.shopifyStore.user.reviewPlatforms[0].accessToken,
+        shopName: checkout.shopifyStore.name,
+        productName: payload.productName,
+      });
+
+      await this.prisma.checkout.update({
+        where: {
+          shopifyOrderId: orderId,
+        },
+        data: {
+          reviewSubmittedFor: {
+            push: payload.productId,
+          },
+        },
+      });
+
+      // Todo: add  the product is the the database if review is already collected
+      return { data: 'Added review for the product successfully' };
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Review');
     }
   }
 }

@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "SMSPlatformName" ADD VALUE 'ATTENTIVE';

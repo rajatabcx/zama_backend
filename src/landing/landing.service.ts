@@ -3,13 +3,13 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AmpService } from 'src/amp/amp.service';
 import { AddToNewsLetterDTO, ContactSupportDTO, DemoEmailDTO } from './dto';
-import { ElasticEmailService } from 'src/elastic-email/elastic-email.service';
 import { CommonService } from 'src/common/common.service';
 import {
   checkoutFallbackTemplate,
   checkoutTemplate,
   contactSupportEmail,
-} from 'src/email/data';
+} from 'src/data';
+import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class LandingService {
@@ -17,12 +17,12 @@ export class LandingService {
     private config: ConfigService,
     private amp: AmpService,
     private common: CommonService,
-    private elasticEmail: ElasticEmailService,
+    private email: EmailService,
   ) {}
 
   async addToNewsLetter(data: AddToNewsLetterDTO) {
     try {
-      await this.elasticEmail.addUsersToList(
+      await this.email.addUsersToList(
         [{ Email: data.email, FirstName: data.name }],
         ['Newsletter'],
       );
@@ -52,7 +52,7 @@ export class LandingService {
           },
         },
       };
-      await this.elasticEmail.sendTransactionalEmailFromMe(emailData);
+      await this.email.sendTransactionalEmailFromMe(emailData);
     } catch (err) {
       this.common.generateErrorResponse(err, 'Contact');
     }
@@ -78,7 +78,7 @@ export class LandingService {
         },
       );
 
-      await this.elasticEmail.addUsersToList(
+      await this.email.addUsersToList(
         [{ Email: data.email, FirstName: 'Anonymous User' }],
         ['Demo Email'],
       );
@@ -129,7 +129,7 @@ export class LandingService {
         },
       };
 
-      await this.elasticEmail.sendTransactionalEmailFromMe(emailMessageData);
+      await this.email.sendTransactionalEmailFromMe(emailMessageData);
 
       return {
         data: {},

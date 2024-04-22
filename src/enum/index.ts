@@ -1,2 +1,2 @@
-export * from './shopName.enum';
 export * from './intent.enum';
+export * from './ecommerece.enum';

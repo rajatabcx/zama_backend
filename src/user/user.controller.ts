@@ -40,6 +40,24 @@ export class UserController {
     return this.userService.integrations(userId);
   }
 
+  @Get('/checkouts')
+  checkouts(
+    @UserId() userId: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    return this.userService.checkouts(userId, page, limit);
+  }
+
+  @Get('/orders')
+  orders(
+    @UserId() userId: string,
+    @Query('page_info') page_info: string,
+    @Query('limit', new DefaultValuePipe(10), new ParseIntPipe()) limit: string,
+  ) {
+    return this.userService.orders(userId, limit, page_info);
+  }
+
   @Get('/product-upsells')
   productUpsells(
     @UserId() userId: string,
@@ -79,5 +97,21 @@ export class UserController {
     @Param('productUpsellId') productUpsellId: string,
   ) {
     return this.userService.runProductUpsell(userId, productUpsellId);
+  }
+
+  @Post('/send-checkout-email/:checkoutId')
+  checkoutEmail(
+    @UserId() userId: string,
+    @Param('checkoutId') checkoutId: string,
+  ) {
+    return this.userService.checkoutEmail(userId, checkoutId);
+  }
+
+  @Post('/send-review-email/:checkoutId')
+  reviewEmail(
+    @UserId() userId: string,
+    @Param('checkoutId') checkoutId: string,
+  ) {
+    return this.userService.reviewEmail(userId, checkoutId);
   }
 }

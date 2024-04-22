@@ -10,34 +10,38 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 import { CommonService } from 'src/common/common.service';
+import { EmailServiceInterface } from 'src/interfaces';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
-export class ElasticEmailService {
+export class ElasticEmailService implements EmailServiceInterface {
   constructor(
     private common: CommonService,
     private httpService: HttpService,
   ) {}
 
-  async templates(userId: string) {
-    const { config } = await this.common.emailConfig(userId);
-    const template = new TemplatesApi(config);
-    const { data: templates } = await template.templatesGet(
-      ['Global', 'Personal'],
-      ['DragDropEditor', 'LandingPageEditor', 'RawHTML'],
-      20,
-    );
-    const modifiedData = templates.map((template) => ({
-      createdAt: template.DateAdded,
-      name: template.Name,
-      subject: template.Subject,
-    }));
-    return modifiedData;
+  async emailTemplates(userId: string) {
+    try {
+      const data = await this.templates(userId);
+
+      const templates = data.map((item, index) => ({
+        id: `temp-${index}`,
+        name: item.name,
+      }));
+
+      return templates;
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Email Templates');
+    }
   }
 
-  async addUsersToList(users: ContactPayload[], lists: string[]) {
-    const config = this.common.myEmailConfig();
-    const contacts = new ContactsApi(config);
-    await contacts.contactsPost(users, lists);
+  async emailLists(userId: string) {
+    try {
+      const data = await this.lists(userId);
+      return data;
+    } catch (err) {
+      this.common.generateErrorResponse(err, 'Email Templates');
+    }
   }
 
   async sendTransactionalEmail(
@@ -50,26 +54,12 @@ export class ElasticEmailService {
     await emailsApi.emailsTransactionalPost(data);
   }
 
-  async sendTransactionalEmailFromMe(data: EmailTransactionalMessageData) {
-    data.Content.From = 'Rajat Mondal <info@zama.agency>';
-    const config = this.common.myEmailConfig();
-    const emailsApi = new EmailsApi(config);
-    await emailsApi.emailsTransactionalPost(data);
-  }
-
-  async lists(userId: string) {
-    const { config } = await this.common.emailConfig(userId);
-    const listsApi = new ListsApi(config);
-    const { data: lists } = await listsApi.listsGet(20);
-    const modifiedData = lists.map((list) => ({
-      id: list.PublicListID,
-      name: list.ListName,
-    }));
-    return modifiedData;
-  }
-
-  async usersFromList(userId: string, listName: string, page: number) {
-    const limit = 200;
+  async usersFromList(
+    userId: string,
+    listName: string,
+    page: number,
+    limit: number,
+  ) {
     const offset = page * limit;
 
     const { elasticEmailApiKey } = await this.common.emailConfig(userId);
@@ -86,5 +76,32 @@ export class ElasticEmailService {
         `https://api.elasticemail.com/v2/contact/getcontactsbylist?${query}`,
       ),
     );
+  }
+
+  private async lists(userId: string) {
+    const { config } = await this.common.emailConfig(userId);
+    const listsApi = new ListsApi(config);
+    const { data: lists } = await listsApi.listsGet(20);
+    const modifiedData = lists.map((list) => ({
+      id: list.PublicListID,
+      name: list.ListName,
+    }));
+    return modifiedData;
+  }
+
+  private async templates(userId: string) {
+    const { config } = await this.common.emailConfig(userId);
+    const template = new TemplatesApi(config);
+    const { data: templates } = await template.templatesGet(
+      ['Global', 'Personal'],
+      ['DragDropEditor', 'LandingPageEditor', 'RawHTML'],
+      20,
+    );
+    const modifiedData = templates.map((template) => ({
+      createdAt: template.DateAdded,
+      name: template.Name,
+      subject: template.Subject,
+    }));
+    return modifiedData;
   }
 }

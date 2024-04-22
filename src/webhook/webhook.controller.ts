@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Headers } from '@nestjs/common';
 import { WebhookService } from './webhook.service';
 import { UserId } from 'src/decorators';
 import { Public } from 'src/guards';
@@ -19,14 +19,29 @@ export class WebhookController {
 
   @Public()
   @Post('/shopify/uninstall')
-  shopifyAppUninstalled(@Body() data: any) {
-    return this.webhookService.shopifyAppUninstalled(data);
+  shopifyAppUninstalled(
+    @Headers('X-Shopify-Shop-Domain') shopName: string,
+    @Body() data: any,
+  ) {
+    return this.webhookService.shopifyAppUninstalled(shopName, data);
   }
 
   @Public()
   @Post('/shopify/checkout-created')
-  shopifyCheckoutCreated(@Body() data: any) {
-    return this.webhookService.shopifyCheckoutCreated(data);
+  shopifyCheckoutCreated(
+    @Headers('X-Shopify-Shop-Domain') shopName: string,
+    @Body() data: any,
+  ) {
+    return this.webhookService.shopifyCheckoutCreated(shopName, data);
+  }
+
+  @Public()
+  @Post('/shopify/checkout-updated')
+  shopifyCheckoutUpdated(
+    @Headers('X-Shopify-Shop-Domain') shopName: string,
+    @Body() data: any,
+  ) {
+    return this.webhookService.shopifyCheckoutUpdated(shopName, data);
   }
 
   @Public()
@@ -36,20 +51,20 @@ export class WebhookController {
   }
 
   @Public()
-  @Post('/shopify/checkout-updated')
-  shopifyCheckoutUpdated(@Body() data: any) {
-    return this.webhookService.shopifyCheckoutUpdated(data);
-  }
-
-  @Public()
   @Post('/shopify/order-created')
-  shopifyOrderCreated() {
-    return this.webhookService.shopifyOrderCreated();
+  shopifyOrderCreated(
+    @Headers('X-Shopify-Shop-Domain') shopName: string,
+    @Body() data: any,
+  ) {
+    return this.webhookService.shopifyOrderCreated(shopName, data);
   }
 
   @Public()
   @Post('/shopify/order-updated')
-  shopifyOrderUpdated() {
-    return this.webhookService.shopifyOrderUpdated();
+  shopifyOrderUpdated(
+    @Headers('X-Shopify-Shop-Domain') shopName: string,
+    @Body() data: any,
+  ) {
+    return this.webhookService.shopifyOrderUpdated(shopName, data);
   }
 }
