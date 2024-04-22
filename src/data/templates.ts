@@ -600,6 +600,7 @@ export const checkoutTemplate = `
                                                 </amp-carousel>
                                             </div>
                                             <div
+                                            hidden={{orderPlaced}}
                                                 style="flex-grow: 1; align-self: stretch;display: flex;flex-direction: column; width: 100%; justify-content: space-between;">
                                                 <div>
                                                     <h1 style="margin-bottom: 8px;">Variants</h1>
@@ -735,7 +736,7 @@ export const checkoutTemplate = `
                                     </div>
                                 </div>
                                 {{/items}}
-                                <div style="padding: 16px;">
+                                <div style="padding: 16px;" hidden={{orderPlaced}}>
                                     <form method="post" action-xhr="{applyDiscountLink}"
                                         on="submit-success:checkout.refresh,checkoutActions.refresh,AMP.setState({ zamaState: { applyingDiscount: '' } });submit-error:AMP.setState({ zamaState: { applyingDiscount: '' } })">
                                         <div style="display: flex;gap: 8px;">
@@ -822,9 +823,11 @@ export const checkoutTemplate = `
                         <template type="amp-mustache">
                             <div
                                 style="display: flex;flex-direction: column;justify-content: center;align-items: center; padding: 16px;">
-                                <a class="btn" style="width: 100%;justify-content: center;" href="{{checkoutUrl}}"
-                                    target="_blank">Checkout
-                                    from email</a>
+                                <a hidden={{orderPlaced}} class="btn" style="width: 100%;justify-content: center;" href="{{checkoutUrl}}"
+                                target="_blank">Checkout
+                                from email</a>
+                          <a [hidden]={{!orderPlaced}} class="btn" style="width: 100%;justify-content: center;" href="{{checkoutUrl}}"
+                                target="_blank">Check Order Details</a>
                                 <p style="font-size: 12;font-weight: 400;margin-top: 8px;">Don't worry this is safe af
                                 </p>
                             </div>
@@ -836,10 +839,11 @@ export const checkoutTemplate = `
                     </div>
                     <div class="ampListBetSellerContainer">
                         <amp-list class="ampListBestSeller" layout="fixed-height" height="400" binding="always"
-                            src="{bestSellerLink}">
+                            src="{bestSellerLink}" items=".">
 
                             <template type="amp-mustache">
-                                <div class="product">
+                            {{#items}}
+                                <div class="product" hidden={{ordePlaced}}>
                                     <div class="productImages">
                                         <amp-carousel height="200" layout="fixed-height" type="slides" role="region"
                                             aria-label="Basic usage carousel">
@@ -906,7 +910,10 @@ export const checkoutTemplate = `
                                         </div>
                                     </div>
                                 </div>
-
+                                {{/items}}
+                                <div [hidden]={{!orderPlaced}}>
+                                    <h1>Order already placed, can't add more items</h1>
+                                </div
                             </template>
 
                         </amp-list>
