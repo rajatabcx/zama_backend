@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CommonService } from 'src/common/common.service';
+import { EcommerecePlatform } from 'src/enum';
+import { Integration } from 'src/interfaces';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ShopifyGraphqlService } from 'src/shopify-graphql/shopify-graphql.service';
 
@@ -134,6 +136,11 @@ export class WebhookService {
         userId: true,
         name: true,
         accessToken: true,
+        user: {
+          select: {
+            integrations: true,
+          },
+        },
       },
     });
 
@@ -156,6 +163,11 @@ export class WebhookService {
 
     await Promise.all(promises);
 
+    const updatedIntegrations = shopifyStore.user
+      .integrations as unknown as Integration;
+
+    delete updatedIntegrations[EcommerecePlatform.SHOPIFY];
+
     const checkoutDeletePromise = this.prisma.checkout.deleteMany({
       where: {
         shopifyStoreId: shopifyStore.id,
@@ -174,10 +186,20 @@ export class WebhookService {
       },
     });
 
+    const userPromise = this.prisma.user.update({
+      data: {
+        integrations: updatedIntegrations,
+      },
+      where: {
+        id: shopifyStore.userId,
+      },
+    });
+
     await this.prisma.$transaction([
       checkoutDeletePromise,
       storeDeletePromise,
       productUpsellDeletePromise,
+      userPromise,
     ]);
 
     return {};
