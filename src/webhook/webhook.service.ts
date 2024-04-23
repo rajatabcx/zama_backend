@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CommonService } from 'src/common/common.service';
+import { EcommerecePlatform } from 'src/enum';
+import { Integration } from 'src/interfaces';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ShopifyGraphqlService } from 'src/shopify-graphql/shopify-graphql.service';
 
@@ -134,6 +136,11 @@ export class WebhookService {
         userId: true,
         name: true,
         accessToken: true,
+        user: {
+          select: {
+            integrations: true,
+          },
+        },
       },
     });
 
@@ -156,6 +163,11 @@ export class WebhookService {
 
     await Promise.all(promises);
 
+    const updatedIntegrations = shopifyStore.user
+      .integrations as unknown as Integration;
+
+    delete updatedIntegrations[EcommerecePlatform.SHOPIFY];
+
     const checkoutDeletePromise = this.prisma.checkout.deleteMany({
       where: {
         shopifyStoreId: shopifyStore.id,
@@ -174,17 +186,29 @@ export class WebhookService {
       },
     });
 
+    const userPromise = this.prisma.user.update({
+      data: {
+        integrations: updatedIntegrations,
+      },
+      where: {
+        id: shopifyStore.userId,
+      },
+    });
+
     await this.prisma.$transaction([
       checkoutDeletePromise,
       storeDeletePromise,
       productUpsellDeletePromise,
+      userPromise,
     ]);
 
     return {};
   }
 
   async shopifyCheckoutCreated(shopName: string, data: any) {
-    console.log(`\n\ncheckout created from ${data.landing_site}`);
+    console.log(
+      `\Checkout created from ${data.landing_site} with checkout token ${data.token}`,
+    );
 
     if (data.landing_site.includes('/api/2023-10/graphql.json')) {
       console.log('Ignoring checkout creation as its coming from api');
@@ -251,15 +275,15 @@ export class WebhookService {
         webUrl: resData.checkoutCreate.checkout.webUrl,
       };
 
-      const storefrontUrl = new URL(storefrontCheckoutData.webUrl);
-      const storeFrontToken = storefrontUrl.pathname
-        .split('checkouts/')[1]
-        .replace('/recover', '');
+      const regex = /\/([^\/?#]+)\?/;
+      const match = regex.exec(resData.checkoutCreate.checkout.id);
+      const storefrontCheckoutToken = match && match[1]; // Extracted value
 
       console.log('creating record in database');
       await this.prisma.checkout.create({
         data: {
           shopifyAdminCheckoutToken: data.token,
+          shopifyStorefrontCheckoutToken: storefrontCheckoutToken,
           shopifyAbandonedCheckoutURL: storefrontCheckoutData.webUrl,
           shopifyStorefrontCheckoutId: storefrontCheckoutData.id,
           shopifyStore: {
@@ -281,7 +305,9 @@ export class WebhookService {
   }
 
   async shopifyCheckoutUpdated(shopName: string, data: any) {
-    console.log('update');
+    console.log(
+      `\checkout updated from ${data.landing_site} with checkout token ${data.token}`,
+    );
     //for address check if there is customer available then attach the checkout with customer or else update the shipping address with billing_address
     // billing adress
     // billing_address: {
@@ -378,7 +404,9 @@ export class WebhookService {
   }
 
   async shopifyOrderCreated(shopName: string, data: any) {
-    console.log(`\norder created from ${data.landing_site}`);
+    console.log(
+      `\norder created from ${data.landing_site} with checkout token ${data.checkout_token}`,
+    );
     if (data.landing_site.includes('/api/2023-10/graphql.json')) {
       console.log('Ignoring checkout creation as its coming from api');
       return {};
@@ -386,12 +414,17 @@ export class WebhookService {
 
     const checkout = await this.prisma.checkout.findUnique({
       where: {
-        shopifyAdminCheckoutToken: data.checkout_token,
+        shopifyStorefrontCheckoutToken: data.checkout_token,
       },
       select: {
         orderPlaced: true,
       },
     });
+
+    if (!checkout) {
+      console.log('Checkout not found ignoring');
+      return;
+    }
 
     if (checkout.orderPlaced) {
       console.log('Checkout already updated with order details');
@@ -401,7 +434,7 @@ export class WebhookService {
     try {
       await this.prisma.checkout.update({
         where: {
-          shopifyAdminCheckoutToken: data.checkout_token,
+          shopifyStorefrontCheckoutToken: data.checkout_token,
         },
         data: {
           orderPlaced: true,
@@ -421,7 +454,7 @@ export class WebhookService {
 
     const checkout = await this.prisma.checkout.findUnique({
       where: {
-        shopifyAdminCheckoutToken: data.checkout_token,
+        shopifyStorefrontCheckoutToken: data.checkout_token,
       },
       select: {
         orderFulFilled: true,
@@ -447,7 +480,7 @@ export class WebhookService {
     try {
       await this.prisma.checkout.update({
         where: {
-          shopifyAdminCheckoutToken: data.checkout_token,
+          shopifyStorefrontCheckoutToken: data.checkout_token,
         },
         data: {
           orderFulFilled: !!data.fulfillment_status,

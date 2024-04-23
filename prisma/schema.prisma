@@ -95,22 +95,23 @@ model ShopifyStore {
 }
 
 model Checkout {
-  id                          String       @id @unique @default(uuid())
-  shopifyAdminCheckoutToken   String       @unique
-  shopifyStorefrontCheckoutId String       @unique
-  shopifyAbandonedCheckoutURL String       @unique
-  orderPlaced                 Boolean      @default(false)
-  orderFulFilled              Boolean      @default(false)
-  shopifyOrderId              BigInt?      @unique
-  shopifyOrderGraphqlId       String?      @unique
-  email                       String?
-  checkoutEmailSent           Boolean      @default(false)
-  reviewEmailSent             Boolean      @default(false)
-  reviewSubmittedFor          BigInt[]
-  shopifyStoreId              String
-  shopifyStore                ShopifyStore @relation(fields: [shopifyStoreId], references: [id])
-  createdAt                   DateTime     @default(now())
-  updatedAt                   DateTime     @updatedAt
+  id                             String       @id @unique @default(uuid())
+  shopifyAdminCheckoutToken      String       @unique
+  shopifyStorefrontCheckoutToken String       @unique
+  shopifyStorefrontCheckoutId    String       @unique
+  shopifyAbandonedCheckoutURL    String       @unique
+  orderPlaced                    Boolean      @default(false)
+  orderFulFilled                 Boolean      @default(false)
+  shopifyOrderId                 BigInt?      @unique
+  shopifyOrderGraphqlId          String?      @unique
+  email                          String?
+  checkoutEmailSent              Boolean      @default(false)
+  reviewEmailSent                Boolean      @default(false)
+  reviewSubmittedFor             BigInt[]
+  shopifyStoreId                 String
+  shopifyStore                   ShopifyStore @relation(fields: [shopifyStoreId], references: [id])
+  createdAt                      DateTime     @default(now())
+  updatedAt                      DateTime     @updatedAt
 
   @@map("checkouts")
 }

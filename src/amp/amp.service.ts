@@ -42,6 +42,7 @@ export class AmpService {
             name: true,
           },
         },
+        orderPlaced: true,
       },
     });
 
@@ -100,7 +101,7 @@ export class AmpService {
         checkoutId,
       }));
 
-      return { items: modifiedProducts };
+      return [{ items: modifiedProducts, orderPlaced: checkout.orderPlaced }];
     } catch (err) {
       this.common.generateErrorResponse(err, 'Shopify');
     }
@@ -121,7 +122,7 @@ export class AmpService {
             discountPercentage: true,
           },
         },
-        orderFulFilled: true,
+        orderPlaced: true,
         shopifyAdminCheckoutToken: true,
         shopifyStorefrontCheckoutId: true,
         shopifyAbandonedCheckoutURL: true,
@@ -224,6 +225,7 @@ export class AmpService {
           !!checkout.shopifyStore.discountPercentage,
         checkoutDiscountCode: checkout.shopifyStore.discountCode,
         checkoutDiscountPercentage: checkout.shopifyStore.discountPercentage,
+        orderPlaced: checkout.orderPlaced,
       };
 
       return [{ ...modifiedCheckoutLineItemData }];
